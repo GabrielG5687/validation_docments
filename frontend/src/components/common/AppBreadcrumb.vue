@@ -1,0 +1,1 @@
+<template><nav aria-label="Breadcrumb" class="mb-5 text-sm text-slate-500"><RouterLink to="/dashboard" class="hover:text-primary">Início</RouterLink><span class="mx-2">/</span><span class="text-slate-700"><slot /></span></nav></template>

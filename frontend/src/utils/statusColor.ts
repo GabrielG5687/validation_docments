@@ -1,0 +1,13 @@
+import { AlertCircle, CheckCircle, Clock, Eye, FileSearch, Loader2, XCircle } from 'lucide-vue-next'
+import type { Component } from 'vue'
+import type { StatusDocumento } from '../types'
+export const STATUS_CONFIG: Record<StatusDocumento, { label: string; colorClass: string; bgClass: string; icon: Component }> = {
+  processando: { label: 'Processando', colorClass: 'text-sky-700', bgClass: 'bg-sky-100', icon: Loader2 },
+  aguardando_validacao: { label: 'Aguardando validação', colorClass: 'text-amber-700', bgClass: 'bg-amber-100', icon: Clock },
+  aguardando_revisao: { label: 'Aguardando revisão', colorClass: 'text-amber-700', bgClass: 'bg-amber-100', icon: FileSearch },
+  em_revisao: { label: 'Em revisão', colorClass: 'text-blue-700', bgClass: 'bg-blue-100', icon: Eye },
+  aprovado: { label: 'Aprovado', colorClass: 'text-green-700', bgClass: 'bg-green-100', icon: CheckCircle },
+  reprovado: { label: 'Reprovado', colorClass: 'text-red-700', bgClass: 'bg-red-100', icon: XCircle },
+  reprovado_automatico: { label: 'Reprovado automaticamente', colorClass: 'text-red-700', bgClass: 'bg-red-100', icon: XCircle },
+  erro_extracao: { label: 'Erro na extração', colorClass: 'text-orange-700', bgClass: 'bg-orange-100', icon: AlertCircle },
+}

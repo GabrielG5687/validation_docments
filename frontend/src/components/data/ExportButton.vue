@@ -1,0 +1,2 @@
+<script setup lang="ts">import { reportService } from '../../services/reportService'; import BaseButton from '../ui/BaseButton.vue'; async function exportFile() { const blob = await reportService.exportCsv(); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = 'relatorio.csv'; link.click(); URL.revokeObjectURL(url) }</script>
+<template><BaseButton variant="secondary" @click="exportFile">Exportar CSV</BaseButton></template>

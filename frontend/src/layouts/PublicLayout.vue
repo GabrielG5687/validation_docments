@@ -1,0 +1,1 @@
+<template><main class="min-h-screen bg-slate-100 p-4"><div class="mx-auto max-w-3xl pt-8"><RouterLink to="/login" class="mb-8 inline-flex items-center gap-2 font-bold text-primary"><span class="text-xl">✓</span> DocValid</RouterLink><RouterView /></div></main></template>

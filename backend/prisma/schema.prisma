@@ -1,0 +1,180 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Perfil {
+  usuario
+  validador
+  coordenador
+  admin
+}
+
+enum StatusTemplate {
+  rascunho
+  ativo
+  inativo
+}
+
+enum TipoRegra {
+  campo_obrigatorio
+  formato
+  intervalo
+  calculo
+}
+
+enum StatusDocumento {
+  processando
+  aguardando_validacao
+  aguardando_revisao
+  em_revisao
+  aprovado
+  reprovado
+  reprovado_automatico
+  erro_extracao
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model Usuario {
+  id        String   @id @default(uuid())
+  nome      String
+  email     String   @unique
+  senhaHash String
+  perfil    Perfil   @default(usuario)
+  status    Boolean  @default(true)
+  criadoEm  DateTime @default(now())
+
+  documentos Documento[]
+  validacoes Validacao[]
+
+  @@map("usuarios")
+}
+
+model Template {
+  id           String         @id @default(uuid())
+  nome         String
+  descricao    String?
+  categoria    String?
+  status       StatusTemplate @default(rascunho)
+  versaoAtual  String         @default("1.0")
+  estrutura    Json?
+  criadoEm    DateTime       @default(now())
+  atualizadoEm DateTime      @updatedAt
+
+  versoes    TemplateVersao[]
+  documentos Documento[]
+  regras     RegraValidacao[]
+
+  @@map("templates")
+}
+
+model TemplateVersao {
+  id          String   @id @default(uuid())
+  templateId  String
+  versao      String
+  snapshot    Json
+  publicadoEm DateTime @default(now())
+
+  template Template @relation(fields: [templateId], references: [id])
+
+  @@map("template_versoes")
+}
+
+model RegraValidacao {
+  id          String    @id @default(uuid())
+  templateId  String
+  nome        String
+  tipo        TipoRegra
+  parametros  Json
+  obrigatoria Boolean   @default(true)
+  ativo       Boolean   @default(true)
+  ordem       Int
+  criadoEm   DateTime  @default(now())
+
+  template   Template         @relation(fields: [templateId], references: [id])
+  resultados ResultadoRegra[]
+
+  @@map("regras_validacao")
+}
+
+model Documento {
+  id                String          @id @default(uuid())
+  usuarioId         String
+  templateId        String
+  nomeArquivo       String
+  minioKey          String
+  hashSha256        String
+  dadosExtraidos    Json?
+  status            StatusDocumento @default(processando)
+  codigoVerificacao String?         @unique
+  qrcodeKey         String?
+  documentoOrigemId String?
+  criadoEm         DateTime        @default(now())
+  atualizadoEm     DateTime        @updatedAt
+
+  usuario   Usuario           @relation(fields: [usuarioId], references: [id])
+  template  Template          @relation(fields: [templateId], references: [id])
+  validacoes Validacao[]
+  historico  HistoricoStatus[]
+
+  @@index([usuarioId])
+  @@index([templateId])
+  @@index([status])
+  @@index([codigoVerificacao])
+  @@index([criadoEm])
+  @@unique([usuarioId, hashSha256])
+  @@map("documentos")
+}
+
+model Validacao {
+  id          String   @id @default(uuid())
+  documentoId String
+  validadorId String
+  resultado   String
+  observacoes String?
+  criadoEm   DateTime @default(now())
+
+  documento       Documento        @relation(fields: [documentoId], references: [id])
+  validador       Usuario          @relation(fields: [validadorId], references: [id])
+  resultadosRegra ResultadoRegra[]
+
+  @@map("validacoes")
+}
+
+model ResultadoRegra {
+  id              String   @id @default(uuid())
+  validacaoId     String
+  regraId         String
+  status          String   // 'aprovado' | 'reprovado'
+  valorEncontrado String?
+  criterio        String?
+  criadoEm       DateTime @default(now())
+
+  validacao Validacao      @relation(fields: [validacaoId], references: [id])
+  regra     RegraValidacao @relation(fields: [regraId], references: [id])
+
+  @@map("resultados_regra")
+}
+
+model HistoricoStatus {
+  id             String   @id @default(uuid())
+  documentoId    String
+  statusAnterior String?
+  statusNovo     String
+  usuarioId      String?
+  criadoEm      DateTime @default(now())
+
+  documento Documento @relation(fields: [documentoId], references: [id])
+
+  @@index([documentoId])
+  @@map("historico_status")
+}
