@@ -43,3 +43,6 @@ vite.log
 
 # MinIO data
 minio_data/
+
+# Kilo specs
+.kiro/
