@@ -11,14 +11,18 @@ import PdfViewer from '../../components/document/PdfViewer.vue'
 import ValidationResults from '../../components/document/ValidationResults.vue'
 import DocumentStatusTimeline from '../../components/document/DocumentStatusTimeline.vue'
 import ApprovalSeal from '../../components/document/ApprovalSeal.vue'
+import GovBrSignatureCard from '../../components/document/GovBrSignatureCard.vue'
+import { documentService } from '../../services/documentService'
 import type { AnaliseIa } from '../../types'
 import { analiseAprovada } from '../../utils/analiseStatus'
+import { assinaturaGovFromDados } from '../../utils/assinaturaGov'
 
 const route = useRoute()
 const router = useRouter()
 const store = useDocumentStore()
 const { poll } = useDocument()
 const copied = ref(false)
+const revalidating = ref(false)
 
 const analiseIa = computed(() => {
   const raw = store.documentoAtual?.dadosExtraidos?._analiseIa
@@ -26,10 +30,12 @@ const analiseIa = computed(() => {
   return raw as AnaliseIa
 })
 
+const assinaturaGov = computed(() => assinaturaGovFromDados(store.documentoAtual?.dadosExtraidos))
+
 const camposExtraidos = computed(() => {
   const dados = store.documentoAtual?.dadosExtraidos || {}
   return Object.fromEntries(
-    Object.entries(dados).filter(([key, value]) => key !== '_analiseIa' && (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'))
+    Object.entries(dados).filter(([key, value]) => !key.startsWith('_') && (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'))
   )
 })
 const approved = computed(() => analiseAprovada(store.documentoAtual))
@@ -50,6 +56,20 @@ async function copyCode() {
     await navigator.clipboard?.writeText(store.documentoAtual.codigoVerificacao)
     copied.value = true
     setTimeout(() => { copied.value = false }, 2000)
+  }
+}
+
+async function revalidateSignature() {
+  if (!store.documentoAtual) return
+  revalidating.value = true
+  try {
+    const resultado = await documentService.validateSignature(store.documentoAtual.id)
+    store.documentoAtual = {
+      ...store.documentoAtual,
+      dadosExtraidos: { ...(store.documentoAtual.dadosExtraidos || {}), _assinaturaGov: resultado },
+    }
+  } finally {
+    revalidating.value = false
   }
 }
 </script>
@@ -95,6 +115,18 @@ async function copyCode() {
           </section>
         </div>
         <div class="space-y-6">
+          <GovBrSignatureCard
+            v-if="assinaturaGov"
+            :resultado="assinaturaGov"
+            :revalidating="revalidating"
+            can-revalidate
+            @revalidate="revalidateSignature"
+          />
+          <section v-else-if="store.documentoAtual.status !== 'processando'" class="rounded-xl border border-slate-200 bg-slate-50 p-5">
+            <p class="text-sm font-semibold text-slate-800">Assinatura digital gov.br</p>
+            <p class="mt-1 text-sm text-slate-600">Ainda não há resultado criptográfico armazenado para este documento.</p>
+            <BaseButton class="mt-3" variant="secondary" :loading="revalidating" @click="revalidateSignature">Validar assinatura</BaseButton>
+          </section>
           <section v-if="analiseIa" class="card">
             <h2 class="mb-4 text-lg font-bold">Análise da IA</h2>
             <p v-if="analiseIa.resumo" class="text-sm text-slate-700">{{ analiseIa.resumo }}</p>

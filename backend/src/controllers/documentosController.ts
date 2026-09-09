@@ -7,10 +7,12 @@ import { sha256 } from '../utils/hash'
 import { generateUniqueCode } from '../utils/codeGenerator'
 import { gerarQRCode } from '../services/qrcodeService'
 import { processarDocumento, changeStatus } from '../services/documentService'
+import { validacaoAssinaturaIndisponivel, validarAssinaturasPdf } from '../services/assinatura/signatureValidationService'
 import {
   BUCKET_DOCUMENTOS,
   BUCKET_QRCODES,
   deleteFile,
+  downloadFile,
   getPresignedUrl,
   uploadFile,
 } from '../services/minioService'
@@ -264,6 +266,38 @@ export async function finalizarRevisao(req: Request, res: Response, next: NextFu
     }
     const qrcodeUrl = qrcodeKey ? await getPresignedUrl(BUCKET_QRCODES, qrcodeKey, 24 * 60 * 60) : undefined
     res.json({ id: documento.id, status: resultado, ...(codigoVerificacao ? { codigoVerificacao, qrcodeUrl } : {}) })
+  } catch (error) { next(error) }
+}
+
+export async function validarAssinaturaDocumento(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    if (!req.user) return
+    const documento = await prisma.documento.findUnique({ where: { id: req.params.id } })
+    if (!documento) {
+      res.status(404).json({ error: 'Documento não encontrado' })
+      return
+    }
+    if (req.user.perfil === 'usuario' && documento.usuarioId !== req.user.id) {
+      res.status(403).json({ error: 'Acesso negado para o perfil atual' })
+      return
+    }
+    const buffer = await downloadFile(BUCKET_DOCUMENTOS, documento.minioKey)
+    let resultado
+    try {
+      resultado = await validarAssinaturasPdf(buffer)
+    } catch (error) {
+      resultado = validacaoAssinaturaIndisponivel(
+        error instanceof Error ? error.message : 'Falha na validação criptográfica da assinatura'
+      )
+    }
+    const atuais = (documento.dadosExtraidos && typeof documento.dadosExtraidos === 'object' && !Array.isArray(documento.dadosExtraidos))
+      ? documento.dadosExtraidos as Record<string, unknown>
+      : {}
+    await prisma.documento.update({
+      where: { id: documento.id },
+      data: { dadosExtraidos: { ...atuais, _assinaturaGov: resultado } as unknown as Prisma.InputJsonValue },
+    })
+    res.json(resultado)
   } catch (error) { next(error) }
 }
 

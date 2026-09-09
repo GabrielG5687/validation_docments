@@ -1,5 +1,5 @@
 import { api } from './api'
-import type { Documento } from '../types'
+import type { Documento, ValidacaoAssinaturaGov } from '../types'
 export const documentService = {
   async list(params?: Record<string, string>) { const { data } = await api.get<{ data: Documento[]; total?: number }>('/api/documentos', { params }); return data },
   async pending() { const { data } = await api.get<{ data: Documento[] }>('/api/documentos/pendentes'); return data },
@@ -8,4 +8,5 @@ export const documentService = {
   async startReview(id: string) { const { data } = await api.post<Documento>(`/api/documentos/${id}/revisao/iniciar`); return data },
   async finishReview(id: string, resultado: 'aprovado' | 'reprovado', observacoes: string) { const { data } = await api.post<Documento>(`/api/documentos/${id}/revisao/finalizar`, { resultado, observacoes }); return data },
   async cancelReview(id: string) { return api.post(`/api/documentos/${id}/revisao/cancelar`) },
+  async validateSignature(id: string) { const { data } = await api.post<ValidacaoAssinaturaGov>(`/api/documentos/${id}/validar-assinatura`); return data },
 }

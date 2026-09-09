@@ -6,6 +6,7 @@ import { extrairTexto } from './pdfService'
 import { aplicarRegra } from './validationService'
 import { extrairValoresDeDocumento } from './extracaoCamposService'
 import { parseEstrutura, flattenCampos } from '../utils/estrutura'
+import { validacaoAssinaturaIndisponivel, validarAssinaturasPdf } from './assinatura/signatureValidationService'
 
 async function changeStatus(documentoId: string, status: StatusDocumento, usuarioId?: string) {
   const current = await prisma.documento.findUnique({ where: { id: documentoId }, select: { status: true } })
@@ -77,6 +78,13 @@ export async function processarDocumento(documentoId: string): Promise<void> {
     let observacaoIa = extraido.resumo || ''
     if (extraido.resumo || extraido.alertas?.length) {
       dados._analiseIa = { resumo: extraido.resumo || '', alertas: extraido.alertas || [] }
+    }
+    try {
+      dados._assinaturaGov = await withTimeout(validarAssinaturasPdf(buffer), 25_000)
+    } catch (error) {
+      dados._assinaturaGov = validacaoAssinaturaIndisponivel(
+        error instanceof Error ? error.message : 'Falha na validação criptográfica da assinatura'
+      )
     }
 
     const camposParaRegras: Record<string, string> = {}

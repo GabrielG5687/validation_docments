@@ -88,6 +88,52 @@ export interface ResultadoRegra { id: string; validacaoId: string; regraId: stri
 export interface Validacao { id: string; documentoId: string; validadorId: string; resultado: 'aprovado' | 'reprovado'; observacoes?: string; criadoEm: string; validador?: Pick<Usuario, 'id' | 'nome'>; resultadosRegra?: ResultadoRegra[] }
 export interface HistoricoStatus { id: string; documentoId: string; statusAnterior?: string; statusNovo: string; usuarioId?: string; criadoEm: string }
 export interface Documento { id: string; usuarioId: string; templateId: string; nomeArquivo: string; hashSha256: string; dadosExtraidos?: Record<string, unknown>; status: StatusDocumento; codigoVerificacao?: string; qrcodeKey?: string; documentoOrigemId?: string; criadoEm: string; usuario?: Pick<Usuario, 'id' | 'nome' | 'email'>; template?: Pick<Template, 'id' | 'nome'>; validacoes?: Validacao[]; historico?: HistoricoStatus[]; presignedUrl?: string; qrcodeUrl?: string }
+export type StatusAssinaturaGov =
+  | 'VALIDA'
+  | 'INVALIDA'
+  | 'DOCUMENTO_ALTERADO'
+  | 'CERTIFICADO_INVALIDO'
+  | 'CERTIFICADO_EXPIRADO'
+  | 'CERTIFICADO_REVOGADO'
+  | 'SEM_ASSINATURA'
+  | 'NAO_ICP_BRASIL'
+  | 'NAO_FOI_POSSIVEL_VALIDAR'
+
+export interface CertificadoAssinatura {
+  valido: boolean
+  icpBrasil: boolean
+  emissor: string
+  sujeito: string
+  inicioValidade: string
+  fimValidade: string
+  revogado: boolean
+  revogacaoVerificada: boolean
+  serial: string
+}
+
+export interface AssinaturaPdfResultado {
+  valida: boolean
+  icpBrasil: boolean
+  assinaturaCriptograficaOk: boolean
+  documentoIntegro: boolean
+  assinante: string
+  dataAssinatura?: string
+  subFilter?: string
+  certificado: CertificadoAssinatura
+  motivo?: string
+}
+
+export interface ValidacaoAssinaturaGov {
+  valido: boolean
+  documentoIntegro: boolean
+  icpBrasil: boolean
+  assinaturas: AssinaturaPdfResultado[]
+  status: StatusAssinaturaGov
+  mensagem: string
+  validadoEm: string
+  observacoes: string[]
+}
+
 export interface AnaliseIa {
   resumo: string
   alertas: string[]

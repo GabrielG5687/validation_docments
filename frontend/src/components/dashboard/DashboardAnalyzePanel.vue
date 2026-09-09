@@ -12,6 +12,8 @@ import BaseAlert from '../ui/BaseAlert.vue'
 import BaseSpinner from '../ui/BaseSpinner.vue'
 import ValidationResults from '../document/ValidationResults.vue'
 import ApprovalSeal from '../document/ApprovalSeal.vue'
+import GovBrSignatureCard from '../document/GovBrSignatureCard.vue'
+import { assinaturaGovFromDados } from '../../utils/assinaturaGov'
 
 const templates = useTemplateStore()
 const documents = useDocumentStore()
@@ -32,6 +34,7 @@ const analiseIa = computed(() => {
   if (!raw || typeof raw !== 'object') return undefined
   return raw as AnaliseIa
 })
+const assinaturaGov = computed(() => assinaturaGovFromDados(result.value?.dadosExtraidos))
 
 const selectableTemplates = computed(() =>
   templates.templates.filter((template) => template.status !== 'inativo')
@@ -129,6 +132,7 @@ async function send() {
           <p v-if="approved" class="rounded-lg bg-green-50 px-3 py-2 text-sm font-semibold text-green-800">Documento conforme. Selo OK aplicado.</p>
           <p v-else-if="rejected" class="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-800">Documento reprovado na análise automática.</p>
           <p v-else class="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Análise em andamento ou aguardando revisão humana.</p>
+          <GovBrSignatureCard v-if="assinaturaGov" :resultado="assinaturaGov" />
           <div v-if="analiseIa" class="text-sm">
             <p v-if="analiseIa.resumo"><span class="font-semibold">IA:</span> {{ analiseIa.resumo }}</p>
             <ul v-if="analiseIa.alertas?.length" class="mt-2 list-disc pl-5 text-amber-800">

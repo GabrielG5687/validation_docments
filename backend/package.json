@@ -26,6 +26,7 @@
     "jsonwebtoken": "^9.0.3",
     "minio": "^8.0.0",
     "multer": "^1.4.5-lts.1",
+    "node-forge": "^1.4.0",
     "pdf-parse": "^1.1.1",
     "qrcode": "^1.5.4",
     "zod": "^3.23.8"
@@ -37,6 +38,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^1.4.11",
     "@types/node": "^20.14.2",
+    "@types/node-forge": "^1.3.14",
     "@types/pdf-parse": "^1.1.4",
     "@types/qrcode": "^1.5.5",
     "@types/supertest": "^6.0.2",
