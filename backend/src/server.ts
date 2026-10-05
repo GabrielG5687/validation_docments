@@ -2,6 +2,7 @@ import 'dotenv/config'
 import app from './app'
 import { ensureBuckets } from './services/minioService'
 import { seedDevelopUser } from './services/seedDevelopUser'
+import { iniciarJobVencimento } from './services/jobVencimento'
 
 const PORT = process.env.PORT ?? 3000
 
@@ -18,6 +19,7 @@ async function start(): Promise<void> {
     console.error('[Server] Falha ao criar usuário develop', error)
   }
 
+  iniciarJobVencimento()
   app.listen(PORT, () => console.info(`[Server] Listening on port ${PORT}`))
 }
 

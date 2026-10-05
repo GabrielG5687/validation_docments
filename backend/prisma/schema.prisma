@@ -42,6 +42,37 @@ enum StatusDocumento {
   erro_extracao
 }
 
+enum TipoEntidade {
+  empresa
+  pessoa
+}
+
+enum DossieStatus {
+  em_compliance
+  pendente
+  aprovado
+}
+
+enum ValidadeStatus {
+  valido
+  proximo_vencimento
+  vencido
+  sem_validade
+}
+
+enum PapelEmpresa {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum StatusConviteEmpresa {
+  pendente
+  aceito
+  expirado
+  revogado
+}
+
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model Usuario {
@@ -55,8 +86,61 @@ model Usuario {
 
   documentos Documento[]
   validacoes Validacao[]
+  entidades  Entidade[]
+  notificacoes Notificacao[]
+  membrosEmpresas MembroEmpresa[]
+  convitesCriados ConviteEmpresa[] @relation("ConviteCriadoPor")
 
   @@map("usuarios")
+}
+
+model Empresa {
+  id           String   @id @default(uuid())
+  nome         String
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  membros   MembroEmpresa[]
+  convites  ConviteEmpresa[]
+  entidades Entidade[]
+
+  @@map("empresas")
+}
+
+model MembroEmpresa {
+  id           String       @id @default(uuid())
+  empresaId    String
+  usuarioId    String
+  papel        PapelEmpresa @default(MEMBER)
+  criadoEm     DateTime     @default(now())
+  atualizadoEm DateTime     @updatedAt
+
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([empresaId, usuarioId])
+  @@index([usuarioId])
+  @@map("membros_empresa")
+}
+
+model ConviteEmpresa {
+  id           String               @id @default(uuid())
+  empresaId    String
+  email        String
+  papel        PapelEmpresa         @default(MEMBER)
+  tokenHash    String               @unique
+  status       StatusConviteEmpresa @default(pendente)
+  expiraEm     DateTime
+  aceitoEm     DateTime?
+  criadoPorId  String
+  criadoEm     DateTime             @default(now())
+
+  empresa   Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  criadoPor Usuario @relation("ConviteCriadoPor", fields: [criadoPorId], references: [id])
+
+  @@index([empresaId, status])
+  @@index([email])
+  @@map("convites_empresa")
 }
 
 model Template {
@@ -67,12 +151,14 @@ model Template {
   status       StatusTemplate @default(rascunho)
   versaoAtual  String         @default("1.0")
   estrutura    Json?
+  validadeDias Int?
   criadoEm    DateTime       @default(now())
   atualizadoEm DateTime      @updatedAt
 
   versoes    TemplateVersao[]
   documentos Documento[]
   regras     RegraValidacao[]
+  dossieItens DossieItem[]
 
   @@map("templates")
 }
@@ -118,11 +204,21 @@ model Documento {
   codigoVerificacao String?         @unique
   qrcodeKey         String?
   documentoOrigemId String?
+  entidadeId        String?
+  dossieItemId      String?
+  dataEmissao       DateTime?
+  dataValidade      DateTime?
+  statusValidade    ValidadeStatus?
+  diasParaVencer    Int?
+  renovacaoNecessaria Boolean?      @default(false)
   criadoEm         DateTime        @default(now())
   atualizadoEm     DateTime        @updatedAt
 
   usuario   Usuario           @relation(fields: [usuarioId], references: [id])
   template  Template          @relation(fields: [templateId], references: [id])
+  entidade  Entidade?         @relation(fields: [entidadeId], references: [id])
+  dossieItem DossieItem?      @relation("ItemEnvio", fields: [dossieItemId], references: [id])
+  itensAtuais DossieItem[]    @relation("ItemAtual")
   validacoes Validacao[]
   historico  HistoricoStatus[]
 
@@ -131,6 +227,8 @@ model Documento {
   @@index([status])
   @@index([codigoVerificacao])
   @@index([criadoEm])
+  @@index([entidadeId])
+  @@index([statusValidade])
   @@unique([usuarioId, hashSha256])
   @@map("documentos")
 }
@@ -177,4 +275,80 @@ model HistoricoStatus {
 
   @@index([documentoId])
   @@map("historico_status")
+}
+
+model Entidade {
+  id                   String       @id @default(uuid())
+  tipo                 TipoEntidade
+  nome                 String
+  documentoIdentificador String?
+  cnpjOuCpf            String?
+  responsavelId        String?
+  empresaId            String?
+  criadoEm             DateTime     @default(now())
+  atualizadoEm         DateTime     @updatedAt
+
+  responsavel Usuario?  @relation(fields: [responsavelId], references: [id])
+  empresa     Empresa?  @relation(fields: [empresaId], references: [id])
+  dossies     Dossie[]
+  documentos  Documento[]
+
+  @@index([responsavelId])
+  @@index([empresaId])
+  @@map("entidades")
+}
+
+model Dossie {
+  id          String      @id @default(uuid())
+  entidadeId  String
+  nome        String
+  descricao   String?
+  status      DossieStatus @default(pendente)
+  criadoEm    DateTime    @default(now())
+  atualizadoEm DateTime   @updatedAt
+
+  entidade Entidade     @relation(fields: [entidadeId], references: [id])
+  itens    DossieItem[]
+
+  @@index([entidadeId])
+  @@map("dossies")
+}
+
+model DossieItem {
+  id          String   @id @default(uuid())
+  dossieId    String
+  templateId  String
+  documentoId String?
+  obrigatorio Boolean  @default(true)
+  ordem       Int
+  criadoEm    DateTime @default(now())
+
+  dossie     Dossie       @relation(fields: [dossieId], references: [id])
+  template   Template     @relation(fields: [templateId], references: [id])
+  documento  Documento?   @relation("ItemAtual", fields: [documentoId], references: [id])
+  documentos Documento[]  @relation("ItemEnvio")
+
+  @@unique([dossieId, templateId])
+  @@index([dossieId])
+  @@index([templateId])
+  @@map("dossie_itens")
+}
+
+model Notificacao {
+  id             String   @id @default(uuid())
+  destinatarioId String
+  tipo           String
+  titulo         String
+  mensagem       String
+  lida           Boolean  @default(false)
+  documentoId    String?
+  dossieId       String?
+  entidadeId     String?
+  criadoEm       DateTime @default(now())
+
+  destinatario Usuario @relation(fields: [destinatarioId], references: [id])
+
+  @@index([destinatarioId, lida])
+  @@index([criadoEm])
+  @@map("notificacoes")
 }

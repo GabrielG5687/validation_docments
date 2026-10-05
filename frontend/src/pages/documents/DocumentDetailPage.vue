@@ -11,6 +11,7 @@ import PdfViewer from '../../components/document/PdfViewer.vue'
 import ValidationResults from '../../components/document/ValidationResults.vue'
 import DocumentStatusTimeline from '../../components/document/DocumentStatusTimeline.vue'
 import ApprovalSeal from '../../components/document/ApprovalSeal.vue'
+import ValidadeSeal from '../../components/document/ValidadeSeal.vue'
 import GovBrSignatureCard from '../../components/document/GovBrSignatureCard.vue'
 import { documentService } from '../../services/documentService'
 import type { AnaliseIa } from '../../types'
@@ -86,6 +87,7 @@ async function revalidateSignature() {
         <div class="flex items-center gap-4">
           <ApprovalSeal v-if="approved" compact />
           <BaseBadge :status="store.documentoAtual.status" />
+          <ValidadeSeal v-if="store.documentoAtual.status === 'aprovado' && store.documentoAtual.statusValidade" :status="store.documentoAtual.statusValidade" :dias-para-vencer="store.documentoAtual.diasParaVencer" :data-validade="store.documentoAtual.dataValidade" />
         </div>
       </div>
       <div v-if="store.documentoAtual.codigoVerificacao" class="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-green-200 bg-green-50 p-5">

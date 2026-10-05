@@ -1,1 +1,14 @@
-<template><main class="min-h-screen bg-slate-100 p-4"><div class="mx-auto max-w-3xl pt-8"><RouterLink to="/login" class="mb-8 inline-flex items-center gap-2 font-bold text-primary"><span class="text-xl">✓</span> DocValid</RouterLink><RouterView /></div></main></template>
+<template>
+  <main class="min-h-screen bg-surface px-4 py-10">
+    <div class="mx-auto max-w-3xl">
+      <RouterLink to="/login" class="mb-8 inline-flex items-center" aria-label="ValidaDoc">
+        <BrandLogo size="md" />
+      </RouterLink>
+      <RouterView />
+    </div>
+  </main>
+</template>
+
+<script setup lang="ts">
+import BrandLogo from '../components/common/BrandLogo.vue'
+</script>

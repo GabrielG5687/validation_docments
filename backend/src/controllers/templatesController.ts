@@ -26,6 +26,7 @@ const createTemplateSchema = z.object({
   descricao: z.string().optional(),
   categoria: z.string().optional(),
   estrutura: estruturaSchema.optional(),
+  validadeDias: z.number().int().min(1).max(3650).optional().nullable(),
 })
 
 const updateTemplateSchema = z.object({
@@ -33,6 +34,7 @@ const updateTemplateSchema = z.object({
   descricao: z.string().optional(),
   categoria: z.string().optional(),
   estrutura: estruturaSchema.optional(),
+  validadeDias: z.number().int().min(1).max(3650).optional().nullable(),
 })
 
 const testarSchema = z.object({
@@ -142,7 +144,7 @@ export async function createTemplate(
       return
     }
 
-    const { nome, descricao, categoria, estrutura } = parseResult.data
+    const { nome, descricao, categoria, estrutura, validadeDias } = parseResult.data
 
     const template = await prisma.template.create({
       data: {
@@ -151,6 +153,7 @@ export async function createTemplate(
         categoria,
         status: 'rascunho',
         versaoAtual: '1.0',
+        validadeDias: validadeDias ?? null,
         estrutura: (estrutura ?? emptyEstrutura()) as Prisma.InputJsonValue,
       },
       include: {
@@ -188,7 +191,7 @@ export async function updateTemplate(
       return
     }
 
-    const { nome, descricao, categoria, estrutura } = parseResult.data
+    const { nome, descricao, categoria, estrutura, validadeDias } = parseResult.data
 
     const existing = await prisma.template.findUnique({ where: { id } })
     if (!existing) {
@@ -207,6 +210,7 @@ export async function updateTemplate(
         ...(descricao !== undefined && { descricao }),
         ...(categoria !== undefined && { categoria }),
         ...(estrutura !== undefined && { estrutura: estrutura as Prisma.InputJsonValue }),
+        ...(validadeDias !== undefined && { validadeDias }),
         status: newStatus,
       },
       include: {
@@ -239,7 +243,7 @@ export async function deleteTemplate(
 
     const existing = await prisma.template.findUnique({
       where: { id },
-      include: { _count: { select: { documentos: true } } },
+      include: { _count: { select: { documentos: true, dossieItens: true } } },
     })
 
     if (!existing) {
@@ -249,6 +253,11 @@ export async function deleteTemplate(
 
     if (existing._count.documentos > 0) {
       res.status(409).json({ error: 'Template possui documentos associados e não pode ser excluído' })
+      return
+    }
+
+    if (existing._count.dossieItens > 0) {
+      res.status(409).json({ error: 'Template está em dossiês e não pode ser excluído' })
       return
     }
 
@@ -326,6 +335,7 @@ export async function publicarTemplate(
             nome: template.nome,
             descricao: template.descricao,
             categoria: template.categoria,
+            validadeDias: template.validadeDias,
           },
         },
       }),

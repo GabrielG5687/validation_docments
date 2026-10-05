@@ -3,6 +3,7 @@ import { z } from 'zod'
 import prisma from '../config/prisma'
 import { hashPassword, verifyPassword } from '../utils/password'
 import { signToken } from '../utils/jwt'
+import { criarUsuarioComEmpresa, garantirWorkspacePadrao } from '../services/empresaService'
 
 const userSelect = {
   id: true,
@@ -15,6 +16,7 @@ const userSelect = {
 
 const cadastroSchema = z.object({
   nome: z.string().trim().min(2, 'Nome deve ter pelo menos 2 caracteres'),
+  nomeEmpresa: z.string().trim().min(2, 'Nome da empresa deve ter pelo menos 2 caracteres').max(200),
   email: z.string().trim().email('E-mail inválido').toLowerCase(),
   senha: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres'),
 })
@@ -24,10 +26,6 @@ const loginSchema = z.object({
   senha: z.string().min(1, 'Senha é obrigatória'),
 })
 
-/**
- * POST /api/auth/cadastro
- * Creates a local user account and returns a JWT session.
- */
 export async function cadastrar(
   req: Request,
   res: Response,
@@ -40,7 +38,7 @@ export async function cadastrar(
       return
     }
 
-    const { nome, email, senha } = parseResult.data
+    const { nome, nomeEmpresa, email, senha } = parseResult.data
 
     const existing = await prisma.usuario.findUnique({ where: { email } })
     if (existing) {
@@ -48,25 +46,30 @@ export async function cadastrar(
       return
     }
 
-    const usuario = await prisma.usuario.create({
-      data: {
-        nome,
-        email,
-        senhaHash: await hashPassword(senha),
-      },
-      select: userSelect,
+    const { usuarioId, empresaId } = await criarUsuarioComEmpresa({
+      nome,
+      email,
+      senhaHash: await hashPassword(senha),
+      nomeEmpresa,
     })
 
-    res.status(201).json({ user: usuario, token: signToken(usuario.id) })
+    const usuario = await prisma.usuario.findUniqueOrThrow({
+      where: { id: usuarioId },
+      select: userSelect,
+    })
+    const empresas = await garantirWorkspacePadrao(usuario.id, usuario.nome)
+
+    res.status(201).json({
+      user: usuario,
+      token: signToken(usuario.id),
+      empresas,
+      empresaAtivaId: empresaId,
+    })
   } catch (err) {
     next(err)
   }
 }
 
-/**
- * POST /api/auth/login
- * Authenticates a registered user and returns a JWT session.
- */
 export async function login(
   req: Request,
   res: Response,
@@ -92,17 +95,20 @@ export async function login(
       return
     }
 
-    const { senhaHash, ...safeUser } = usuario
-    res.status(200).json({ user: safeUser, token: signToken(usuario.id) })
+    const { senhaHash: _, ...safeUser } = usuario
+    const empresas = await garantirWorkspacePadrao(usuario.id, usuario.nome)
+
+    res.status(200).json({
+      user: safeUser,
+      token: signToken(usuario.id),
+      empresas,
+      empresaAtivaId: empresas[0]?.id,
+    })
   } catch (err) {
     next(err)
   }
 }
 
-/**
- * GET /api/auth/me
- * Returns the authenticated user from the current JWT.
- */
 export async function me(
   req: Request,
   res: Response,
@@ -124,7 +130,8 @@ export async function me(
       return
     }
 
-    res.status(200).json({ user: usuario })
+    const empresas = await garantirWorkspacePadrao(usuario.id, usuario.nome)
+    res.status(200).json({ user: usuario, empresas })
   } catch (err) {
     next(err)
   }

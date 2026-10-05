@@ -1,4 +1,4 @@
-import { Perfil } from '@prisma/client'
+import { PapelEmpresa, Perfil } from '@prisma/client'
 
 declare global {
   namespace Express {
@@ -10,6 +10,15 @@ declare global {
         perfil: Perfil
         status: boolean
       }
+      empresa?: {
+        id: string
+        nome: string
+        papel: PapelEmpresa
+        membroId: string
+        permissoes: string[]
+      }
     }
   }
 }
+
+export {}

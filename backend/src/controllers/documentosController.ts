@@ -8,6 +8,8 @@ import { generateUniqueCode } from '../utils/codeGenerator'
 import { gerarQRCode } from '../services/qrcodeService'
 import { processarDocumento, changeStatus } from '../services/documentService'
 import { validacaoAssinaturaIndisponivel, validarAssinaturasPdf } from '../services/assinatura/signatureValidationService'
+import { sincronizarStatusDossiesEntidade } from '../services/dossieService'
+import { entidadeAcessivel } from '../utils/entidadeAccess'
 import {
   BUCKET_DOCUMENTOS,
   BUCKET_QRCODES,
@@ -38,12 +40,38 @@ function fileOrError(req: Request, res: Response): Express.Multer.File | undefin
   return file
 }
 
-async function createDocument(req: Request, res: Response, next: NextFunction, origemId?: string): Promise<void> {
+async function resolverVinculo(req: Request, templateId: string, dossieId?: string): Promise<{ entidadeId?: string; dossieItemId?: string } | null> {
+  if (!req.user) return null
+  const entidadeIdRaw = typeof req.body?.entidadeId === 'string' ? req.body.entidadeId : undefined
+  const dossieItemIdRaw = typeof req.body?.dossieItemId === 'string' ? req.body.dossieItemId : undefined
+  if (dossieItemIdRaw) {
+    const item = await prisma.dossieItem.findUnique({
+      where: { id: dossieItemIdRaw },
+      include: { dossie: { select: { entidadeId: true } } },
+    })
+    if (!item) return null
+    if (dossieId && item.dossieId !== dossieId) return null
+    if (item.templateId !== templateId) return null
+    if (!(await entidadeAcessivel(item.dossie.entidadeId, req.user.perfil, req.user.id, req.empresa?.id))) return null
+    return { entidadeId: item.dossie.entidadeId, dossieItemId: item.id }
+  }
+  if (entidadeIdRaw) {
+    if (!(await entidadeAcessivel(entidadeIdRaw, req.user.perfil, req.user.id, req.empresa?.id))) return null
+    return { entidadeId: entidadeIdRaw }
+  }
+  return {}
+}
+
+export async function uploadDocumento(req: Request, res: Response, next: NextFunction): Promise<void> {
+  await createDocument(req, res, next)
+}
+
+export async function createDocument(req: Request, res: Response, next: NextFunction, origemId?: string): Promise<void> {
   try {
     const file = fileOrError(req, res)
     if (!file || !req.user) return
     const origem = origemId ? await prisma.documento.findUnique({ where: { id: origemId }, select: { templateId: true } }) : null
-    const parsed = z.object({ templateId: z.string().uuid().optional() }).safeParse(req.body)
+    const parsed = z.object({ templateId: z.string().uuid().optional(), entidadeId: z.string().uuid().optional(), dossieItemId: z.string().uuid().optional() }).safeParse(req.body)
     if (!parsed.success) {
       res.status(422).json({ error: 'templateId é obrigatório', details: parsed.error.flatten() })
       return
@@ -58,6 +86,11 @@ async function createDocument(req: Request, res: Response, next: NextFunction, o
       res.status(404).json({ error: 'Template não encontrado ou inativo' })
       return
     }
+    const vinculo = await resolverVinculo(req, templateId)
+    if (!vinculo) {
+      res.status(422).json({ error: 'Item de dossiê inválido para o template informado ou sem acesso à entidade' })
+      return
+    }
     if (origemId) {
       const origemCompleta = await prisma.documento.findUnique({ where: { id: origemId } })
       if (!origemCompleta || origemCompleta.usuarioId !== req.user.id || !['reprovado', 'reprovado_automatico'].includes(origemCompleta.status)) {
@@ -68,10 +101,20 @@ async function createDocument(req: Request, res: Response, next: NextFunction, o
     const hashSha256 = sha256(file.buffer)
     const existing = await prisma.documento.findUnique({
       where: { usuarioId_hashSha256: { usuarioId: req.user.id, hashSha256 } },
-      select: { id: true, minioKey: true, status: true, qrcodeKey: true },
+      select: { id: true, minioKey: true, status: true, qrcodeKey: true, entidadeId: true, dossieItemId: true },
     })
 
     if (existing) {
+      if (existing.entidadeId && vinculo.entidadeId && existing.entidadeId !== vinculo.entidadeId) {
+        res.status(409).json({ error: 'Este arquivo já está vinculado a outra entidade' })
+        return
+      }
+      if (existing.dossieItemId && vinculo.dossieItemId && existing.dossieItemId !== vinculo.dossieItemId) {
+        res.status(409).json({ error: 'Este arquivo já está vinculado a outro item de dossiê' })
+        return
+      }
+      const entidadeId = existing.entidadeId ?? vinculo.entidadeId ?? null
+      const dossieItemId = existing.dossieItemId ?? vinculo.dossieItemId ?? null
       const minioKey = `${randomUUID()}.pdf`
       await uploadFile(BUCKET_DOCUMENTOS, minioKey, file.buffer, 'application/pdf')
       try {
@@ -86,6 +129,13 @@ async function createDocument(req: Request, res: Response, next: NextFunction, o
               minioKey,
               status: 'processando',
               dadosExtraidos: Prisma.DbNull,
+              entidadeId,
+              dossieItemId,
+              dataEmissao: null,
+              dataValidade: null,
+              statusValidade: null,
+              diasParaVencer: null,
+              renovacaoNecessaria: false,
               codigoVerificacao: null,
               qrcodeKey: null,
               documentoOrigemId: origemId ?? undefined,
@@ -120,6 +170,8 @@ async function createDocument(req: Request, res: Response, next: NextFunction, o
           nomeArquivo: file.originalname,
           minioKey,
           hashSha256,
+          entidadeId: vinculo.entidadeId,
+          dossieItemId: vinculo.dossieItemId,
           documentoOrigemId: origemId,
           historico: { create: { statusNovo: 'processando', usuarioId: req.user.id } },
         },
@@ -137,10 +189,6 @@ async function createDocument(req: Request, res: Response, next: NextFunction, o
   }
 }
 
-export async function uploadDocumento(req: Request, res: Response, next: NextFunction): Promise<void> {
-  await createDocument(req, res, next)
-}
-
 export async function reenviarDocumento(req: Request, res: Response, next: NextFunction): Promise<void> {
   await createDocument(req, res, next, req.params.id)
 }
@@ -151,7 +199,15 @@ const listSchema = z.object({
   search: z.string().max(200).optional(),
   dataInicio: z.coerce.date().optional(),
   dataFim: z.coerce.date().optional(),
+  validade: z.enum(['vencido', 'proximos', 'todos']).optional(),
 })
+
+function validadeFilter(validade?: 'vencido' | 'proximos' | 'todos'): Prisma.DocumentoWhereInput | undefined {
+  if (validade === 'vencido') return { statusValidade: 'vencido' }
+  if (validade === 'proximos') return { statusValidade: 'proximo_vencimento' }
+  if (validade === 'todos') return { dataValidade: { not: null } }
+  return undefined
+}
 
 export async function listDocumentos(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -161,12 +217,13 @@ export async function listDocumentos(req: Request, res: Response, next: NextFunc
       res.status(422).json({ error: 'Parâmetros de consulta inválidos', details: parsed.error.flatten() })
       return
     }
-    const { status, templateId, search, dataInicio, dataFim } = parsed.data
+    const { status, templateId, search, dataInicio, dataFim, validade } = parsed.data
     const where: Prisma.DocumentoWhereInput = {
       ...(req.user.perfil === 'usuario' ? { usuarioId: req.user.id } : {}),
       ...(status ? { status } : {}),
       ...(templateId ? { templateId } : {}),
       ...(dataInicio || dataFim ? { criadoEm: { ...(dataInicio ? { gte: dataInicio } : {}), ...(dataFim ? { lte: dataFim } : {}) } } : {}),
+      ...(validadeFilter(validade) ?? {}),
       ...(search ? { OR: [{ nomeArquivo: { contains: search, mode: 'insensitive' } }, { usuario: { nome: { contains: search, mode: 'insensitive' } } }] } : {}),
     }
     const data = await prisma.documento.findMany({
@@ -259,10 +316,16 @@ export async function finalizarRevisao(req: Request, res: Response, next: NextFu
         }
         await tx.validacao.create({ data: { documentoId: documento.id, validadorId: req.user!.id, resultado, observacoes } })
         await tx.historicoStatus.create({ data: { documentoId: documento.id, statusAnterior: 'em_revisao', statusNovo: resultado, usuarioId: req.user!.id } })
+        if (resultado === 'aprovado' && documento.dossieItemId) {
+          await tx.dossieItem.updateMany({ where: { id: documento.dossieItemId }, data: { documentoId: documento.id } })
+        }
       })
     } catch (error) {
       if (qrcodeKey) await deleteFile(BUCKET_QRCODES, qrcodeKey).catch(() => undefined)
       throw error
+    }
+    if (resultado === 'aprovado' && documento.entidadeId) {
+      await sincronizarStatusDossiesEntidade(documento.entidadeId)
     }
     const qrcodeUrl = qrcodeKey ? await getPresignedUrl(BUCKET_QRCODES, qrcodeKey, 24 * 60 * 60) : undefined
     res.json({ id: documento.id, status: resultado, ...(codigoVerificacao ? { codigoVerificacao, qrcodeUrl } : {}) })

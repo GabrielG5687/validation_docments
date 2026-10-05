@@ -8,6 +8,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/dashboard' },
   { path: '/login', component: () => import('../pages/auth/LoginPage.vue'), meta: { public: true, layout: 'auth' } },
   { path: '/cadastro', component: () => import('../pages/auth/RegisterPage.vue'), meta: { public: true, layout: 'auth' } },
+  { path: '/convite/:token', component: () => import('../pages/auth/InvitePage.vue'), meta: { public: true, layout: 'auth' } },
   { path: '/callback', component: () => import('../pages/auth/CallbackPage.vue'), meta: { public: true, layout: 'auth' } },
   { path: '/verificar/:codigo?', component: () => import('../pages/public/VerifyPage.vue'), meta: { public: true, layout: 'public' } },
   { path: '/dashboard', component: () => import('../pages/dashboard/DashboardPage.vue') },
@@ -23,6 +24,9 @@ const routes: RouteRecordRaw[] = [
   { path: '/templates/:id/versoes', component: () => import('../pages/templates/TemplateVersionsPage.vue') },
   { path: '/relatorios', component: () => import('../pages/reports/ReportsPage.vue'), meta: { roles: ['coordenador', 'admin'] } },
   { path: '/usuarios', component: () => import('../pages/users/UsersPage.vue'), meta: { roles: ['admin'] } },
+  { path: '/membros', component: () => import('../pages/empresa/MembrosPage.vue') },
+  { path: '/entidades', component: () => import('../pages/entidades/EntidadesPage.vue') },
+  { path: '/entidades/:id', component: () => import('../pages/entidades/EntidadeDetailPage.vue') },
 ]
 const router = createRouter({ history: createWebHistory(), routes })
 router.beforeEach(async (to) => {
@@ -31,8 +35,8 @@ router.beforeEach(async (to) => {
   if (auth.token && !sessionHydrated) {
     sessionHydrated = true
     try {
-      const user = await authService.me()
-      auth.setSession(user, auth.token)
+      const me = await authService.me()
+      auth.setSession(me.user, auth.token, me.empresas, auth.empresaAtivaId || me.empresas[0]?.id)
     } catch {
       auth.logout()
     }
@@ -42,6 +46,7 @@ router.beforeEach(async (to) => {
   if (!auth.token) return { path: '/login', query: { redirect: to.fullPath } }
   const roles = to.meta.roles as string[] | undefined
   if (roles && (!auth.perfil || !roles.includes(auth.perfil))) return '/dashboard'
+  if (to.path === '/membros' && !auth.temPermissaoEmpresa('members.view')) return '/dashboard'
   return true
 })
 export default router

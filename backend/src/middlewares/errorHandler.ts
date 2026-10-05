@@ -24,18 +24,29 @@ function resolveError(err: unknown): { status: number; message: string } {
     switch (err.code) {
       case 'P2002':
         return { status: 409, message: 'Conflito: registro duplicado.' }
+      case 'P2003':
+        return { status: 422, message: 'Referência inválida nos dados enviados.' }
+      case 'P1001':
+      case 'P1008':
+      case 'P1017':
+        return { status: 503, message: 'Serviço de banco de dados temporariamente indisponível. Tente novamente.' }
       default:
-        return { status: 503, message: 'Serviço de banco de dados temporariamente indisponível.' }
+        return { status: 500, message: 'Erro ao processar a operação no banco de dados.' }
     }
   }
 
-  // Prisma validation/initialization errors
+  // Prisma validation/initialization / connection errors
   if (
-    err instanceof Prisma.PrismaClientValidationError ||
-    err instanceof Prisma.PrismaClientInitializationError ||
-    err instanceof Prisma.PrismaClientRustPanicError
+    err instanceof Prisma.PrismaClientValidationError
   ) {
-    return { status: 503, message: 'Serviço de banco de dados temporariamente indisponível.' }
+    return { status: 500, message: 'Erro interno ao validar a operação.' }
+  }
+  if (
+    err instanceof Prisma.PrismaClientInitializationError ||
+    err instanceof Prisma.PrismaClientRustPanicError ||
+    err instanceof Prisma.PrismaClientUnknownRequestError
+  ) {
+    return { status: 503, message: 'Serviço de banco de dados temporariamente indisponível. Tente novamente.' }
   }
 
   // Zod validation errors

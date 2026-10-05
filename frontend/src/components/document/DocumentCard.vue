@@ -4,6 +4,7 @@ import { formatDate } from '../../utils/formatDate'
 import { analiseAprovada } from '../../utils/analiseStatus'
 import BaseBadge from '../ui/BaseBadge.vue'
 import ApprovalSeal from './ApprovalSeal.vue'
+import ValidadeSeal from './ValidadeSeal.vue'
 defineProps<{ document: Documento }>()
 </script>
 <template>
@@ -16,6 +17,9 @@ defineProps<{ document: Documento }>()
       </div>
       <BaseBadge :status="document.status" />
     </div>
-    <p class="mt-4 text-xs text-slate-500">{{ formatDate(document.criadoEm) }}</p>
+    <div class="mt-4 flex items-center justify-between text-xs text-slate-500">
+      <span>{{ formatDate(document.criadoEm) }}</span>
+      <ValidadeSeal v-if="document.status === 'aprovado'" :status="document.statusValidade" :dias-para-vencer="document.diasParaVencer" />
+    </div>
   </RouterLink>
 </template>

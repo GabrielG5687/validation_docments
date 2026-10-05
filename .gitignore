@@ -23,6 +23,7 @@ yarn-error.log*
 # IDE
 .idea/
 .vscode/
+.cursor/
 *.swp
 *.swo
 
@@ -46,3 +47,6 @@ minio_data/
 
 # Kilo specs
 .kiro/
+
+# Docs
+.docs/

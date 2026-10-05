@@ -17,16 +17,16 @@ export function useAuth() {
   async function loginComEmail(email: string, senha: string) {
     try {
       const response = await authService.login(email, senha)
-      return store.setSession(response.user, response.token)
+      return store.setSession(response.user, response.token, response.empresas, response.empresaAtivaId)
     } catch (error) {
       throw new Error(apiErrorMessage(error, 'E-mail ou senha inválidos.'))
     }
   }
 
-  async function cadastrar(nome: string, email: string, senha: string) {
+  async function cadastrar(nome: string, email: string, senha: string, nomeEmpresa: string) {
     try {
-      const response = await authService.cadastrar(nome, email, senha)
-      return store.setSession(response.user, response.token)
+      const response = await authService.cadastrar(nome, email, senha, nomeEmpresa)
+      return store.setSession(response.user, response.token, response.empresas, response.empresaAtivaId)
     } catch (error) {
       throw new Error(apiErrorMessage(error, 'Não foi possível concluir o cadastro.'))
     }

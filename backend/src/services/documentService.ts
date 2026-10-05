@@ -7,6 +7,7 @@ import { aplicarRegra } from './validationService'
 import { extrairValoresDeDocumento } from './extracaoCamposService'
 import { parseEstrutura, flattenCampos } from '../utils/estrutura'
 import { validacaoAssinaturaIndisponivel, validarAssinaturasPdf } from './assinatura/signatureValidationService'
+import { calcularValidadeDocumento } from './validadeService'
 
 async function changeStatus(documentoId: string, status: StatusDocumento, usuarioId?: string) {
   const current = await prisma.documento.findUnique({ where: { id: documentoId }, select: { status: true } })
@@ -93,6 +94,8 @@ export async function processarDocumento(documentoId: string): Promise<void> {
       if (typeof value === 'string') camposParaRegras[key] = value
     }
 
+    const validade = calcularValidadeDocumento(dados, documento.template.validadeDias)
+
     await changeStatus(documentoId, 'aguardando_validacao')
     const resultados = documento.template.regras.map((regra) => aplicarRegra(regra, camposParaRegras))
     const falhaObrigatoria = documento.template.regras.some((regra, i) => regra.obrigatoria && resultados[i].status === 'reprovado')
@@ -107,7 +110,15 @@ export async function processarDocumento(documentoId: string): Promise<void> {
     await prisma.$transaction(async (tx) => {
       await tx.documento.update({
         where: { id: documentoId },
-        data: { dadosExtraidos: dados as Prisma.InputJsonValue, status: novoStatus },
+        data: {
+          dadosExtraidos: dados as Prisma.InputJsonValue,
+          status: novoStatus,
+          dataEmissao: validade.dataEmissao,
+          dataValidade: validade.dataValidade,
+          statusValidade: validade.statusValidade,
+          diasParaVencer: validade.diasParaVencer,
+          renovacaoNecessaria: validade.statusValidade === 'vencido',
+        },
       })
       await tx.validacao.create({
         data: {

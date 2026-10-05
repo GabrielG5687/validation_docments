@@ -4,6 +4,10 @@ export type TipoRegra = 'campo_obrigatorio' | 'formato' | 'intervalo' | 'calculo
 export type StatusDocumento = 'processando' | 'aguardando_validacao' | 'aguardando_revisao' | 'em_revisao' | 'aprovado' | 'reprovado' | 'reprovado_automatico' | 'erro_extracao'
 export type TipoCampo = 'texto' | 'numero' | 'data' | 'moeda' | 'documento' | 'texto_longo'
 export type StudioStep = 'informacoes' | 'campos' | 'regras' | 'teste' | 'revisao'
+export type ValidadeStatus = 'valido' | 'proximo_vencimento' | 'vencido' | 'sem_validade'
+export type TipoEntidade = 'empresa' | 'pessoa'
+export type DossieStatus = 'em_compliance' | 'pendente' | 'aprovado'
+export type StatusItemChecklist = 'atendido' | 'faltando' | 'vencido'
 
 export interface Usuario { id: string; nome: string; email: string; perfil: Perfil; status: boolean; criadoEm: string }
 
@@ -35,6 +39,7 @@ export interface Template {
   status: StatusTemplate
   versaoAtual: string
   estrutura?: EstruturaTemplate | null
+  validadeDias?: number | null
   criadoEm: string
   atualizadoEm?: string
   regras?: RegraValidacao[]
@@ -87,7 +92,7 @@ export interface TesteTemplateResultado {
 export interface ResultadoRegra { id: string; validacaoId: string; regraId: string; status: 'aprovado' | 'reprovado'; valorEncontrado?: string; criterio?: string; regra?: Pick<RegraValidacao, 'id' | 'nome' | 'tipo'> }
 export interface Validacao { id: string; documentoId: string; validadorId: string; resultado: 'aprovado' | 'reprovado'; observacoes?: string; criadoEm: string; validador?: Pick<Usuario, 'id' | 'nome'>; resultadosRegra?: ResultadoRegra[] }
 export interface HistoricoStatus { id: string; documentoId: string; statusAnterior?: string; statusNovo: string; usuarioId?: string; criadoEm: string }
-export interface Documento { id: string; usuarioId: string; templateId: string; nomeArquivo: string; hashSha256: string; dadosExtraidos?: Record<string, unknown>; status: StatusDocumento; codigoVerificacao?: string; qrcodeKey?: string; documentoOrigemId?: string; criadoEm: string; usuario?: Pick<Usuario, 'id' | 'nome' | 'email'>; template?: Pick<Template, 'id' | 'nome'>; validacoes?: Validacao[]; historico?: HistoricoStatus[]; presignedUrl?: string; qrcodeUrl?: string }
+export interface Documento { id: string; usuarioId: string; templateId: string; nomeArquivo: string; hashSha256: string; dadosExtraidos?: Record<string, unknown>; status: StatusDocumento; codigoVerificacao?: string; qrcodeKey?: string; documentoOrigemId?: string; entidadeId?: string; dossieItemId?: string; dataEmissao?: string | null; dataValidade?: string | null; statusValidade?: ValidadeStatus | null; diasParaVencer?: number | null; renovacaoNecessaria?: boolean | null; criadoEm: string; usuario?: Pick<Usuario, 'id' | 'nome' | 'email'>; template?: Pick<Template, 'id' | 'nome'>; entidade?: Pick<Entidade, 'id' | 'nome'>; validacoes?: Validacao[]; historico?: HistoricoStatus[]; presignedUrl?: string; qrcodeUrl?: string }
 export type StatusAssinaturaGov =
   | 'VALIDA'
   | 'INVALIDA'
@@ -141,3 +146,115 @@ export interface AnaliseIa {
 }
 export interface DashboardData { perfil: Perfil; contadores?: Record<string, number>; ultimosDocumentos?: Documento[]; [key: string]: unknown }
 export interface ReportData { periodo: { inicio: string; fim: string }; totais: { enviados: number; aprovados: number; reprovados: number; emProcessamento: number; taxaAprovacao: number; tempoMedioHoras: number }; porTemplate: Array<Record<string, string | number>>; porValidador: Array<Record<string, string | number>> }
+
+export interface Entidade {
+  id: string
+  tipo: TipoEntidade
+  nome: string
+  documentoIdentificador?: string
+  cnpjOuCpf?: string
+  responsavelId?: string
+  criadoEm: string
+  atualizadoEm: string
+  responsavel?: Pick<Usuario, 'id' | 'nome' | 'email'>
+  dossies?: Dossie[]
+  conformidade?: { totalItens: number; atendidos: number; percentual: number }
+  _count?: { dossies: number; documentos: number }
+}
+
+export interface DossieItem {
+  id: string
+  dossieId?: string
+  templateId: string
+  templateNome?: string
+  obrigatorio: boolean
+  ordem: number
+  status?: StatusItemChecklist
+  documento?: { id: string; nomeArquivo: string; dataValidade?: string | null; statusValidade?: ValidadeStatus | null; criadoEm: string; diasParaVencer?: number | null } | null
+}
+
+export interface Dossie {
+  id: string
+  entidadeId: string
+  nome: string
+  descricao?: string
+  status: DossieStatus
+  criadoEm: string
+  atualizadoEm?: string
+  entidade?: Pick<Entidade, 'id' | 'nome' | 'tipo'>
+  itens?: DossieItem[]
+  _count?: { itens: number }
+}
+
+export interface ConformidadeEntidade {
+  entidadeId: string
+  dossies: Array<{ id: string; nome: string; _count: { itens: number } }>
+  totalItens: number
+  obrigatorios: number
+  atendidos: number
+  faltando: number
+  vencidos: number
+  percentual: number
+  itens: Array<DossieItem & { dossieId: string; dossieNome?: string }>
+}
+
+export interface Notificacao {
+  id: string
+  destinatarioId: string
+  tipo: string
+  titulo: string
+  mensagem: string
+  lida: boolean
+  documentoId?: string
+  dossieId?: string
+  entidadeId?: string
+  criadoEm: string
+}
+
+export type ValidadeFiltro = 'vencido' | 'proximos' | 'todos' | ''
+
+export type PapelEmpresa = 'OWNER' | 'ADMIN' | 'MEMBER'
+export type StatusConviteEmpresa = 'pendente' | 'aceito' | 'expirado' | 'revogado'
+export type PermissaoEmpresa =
+  | 'members.view'
+  | 'members.invite'
+  | 'members.edit'
+  | 'members.remove'
+  | 'company.settings'
+
+export interface EmpresaResumo {
+  id: string
+  nome: string
+  papel: PapelEmpresa
+  permissoes: PermissaoEmpresa[]
+  criadoEm: string
+}
+
+export interface MembroEmpresa {
+  id: string
+  papel: PapelEmpresa
+  criadoEm: string
+  usuario: Pick<Usuario, 'id' | 'nome' | 'email' | 'status' | 'criadoEm'>
+}
+
+export interface ConviteEmpresa {
+  id: string
+  email: string
+  papel: PapelEmpresa
+  status: StatusConviteEmpresa
+  expiraEm: string
+  aceitoEm?: string | null
+  criadoEm: string
+  link?: string
+  expiraEmHoras?: number
+}
+
+export interface ConvitePreview {
+  email: string
+  papel: PapelEmpresa
+  papelRotulo: string
+  status: StatusConviteEmpresa
+  expiraEm: string
+  empresa: { id: string; nome: string }
+  contaExiste: boolean
+}
