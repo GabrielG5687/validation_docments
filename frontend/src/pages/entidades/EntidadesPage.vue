@@ -1,18 +1,23 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import { Building2, UserRound } from 'lucide-vue-next'
 import { entidadeService } from '../../services/entidadeService'
 import { useAuthStore } from '../../stores/auth'
 import { useNotificationStore } from '../../stores/notification'
 import type { Entidade, TipoEntidade } from '../../types'
-import { formatDate } from '../../utils/formatDate'
 import BaseTable from '../../components/ui/BaseTable.vue'
 import BaseSpinner from '../../components/ui/BaseSpinner.vue'
 import BaseButton from '../../components/ui/BaseButton.vue'
 import BaseInput from '../../components/ui/BaseInput.vue'
 import BaseModal from '../../components/ui/BaseModal.vue'
+import PageHeader from '../../components/ui/PageHeader.vue'
+import RowMenu from '../../components/ui/RowMenu.vue'
+import DossieStatusBadge from '../../components/entidades/DossieStatusBadge.vue'
 
 const auth = useAuthStore()
 const notice = useNotificationStore()
+const route = useRoute()
 const entidades = ref<Entidade[]>([])
 const loading = ref(true)
 const podeCriar = computed(() => auth.perfil === 'usuario' || auth.perfil === 'admin' || auth.perfil === 'coordenador')
@@ -20,6 +25,25 @@ const modalOpen = ref(false)
 const salvando = ref(false)
 const editando = ref<Entidade | null>(null)
 const form = ref({ tipo: 'empresa' as TipoEntidade, nome: '', documentoIdentificador: '', cnpjOuCpf: '' })
+const busca = ref(typeof route.query.q === 'string' ? route.query.q : '')
+const filtroTipo = ref<'' | TipoEntidade>('')
+
+const filtradas = computed(() => {
+  const q = busca.value.trim().toLowerCase()
+  return entidades.value.filter((entidade) => {
+    const tipoOk = !filtroTipo.value || entidade.tipo === filtroTipo.value
+    const texto = `${entidade.nome} ${entidade.documentoIdentificador || ''} ${entidade.cnpjOuCpf || ''}`.toLowerCase()
+    return tipoOk && (!q || texto.includes(q))
+  })
+})
+
+function conformidadeDe(entidade: Entidade) {
+  return entidade.conformidade?.percentual ?? 0
+}
+
+function statusDossie(entidade: Entidade) {
+  return conformidadeDe(entidade) >= 100 && (entidade.conformidade?.totalItens ?? 0) > 0 ? 'em_compliance' : 'pendente'
+}
 
 async function load() {
   loading.value = true
@@ -84,77 +108,104 @@ async function excluir(entidade: Entidade) {
   }
 }
 
+watch(() => route.query.q, (q) => {
+  if (typeof q === 'string') busca.value = q
+})
+
 onMounted(load)
 </script>
 <template>
   <div>
-    <div class="mb-6 flex items-center justify-between">
-      <div>
-        <p class="muted">Compliance</p>
-        <h1 class="page-title">Entidades</h1>
-      </div>
-      <BaseButton v-if="podeCriar" @click="abrirNova">Nova entidade</BaseButton>
+    <PageHeader
+      title="Entidades"
+      description="Acompanhe a conformidade documental de cada empresa ou pessoa."
+    >
+      <BaseButton v-if="podeCriar" @click="abrirNova">+ Nova entidade</BaseButton>
+    </PageHeader>
+
+    <div class="mb-4 flex flex-col gap-3 sm:flex-row">
+      <input v-model="busca" class="field sm:max-w-sm" placeholder="Buscar por nome ou documento" aria-label="Buscar entidades" />
+      <select v-model="filtroTipo" class="field sm:w-44" aria-label="Filtrar por tipo">
+        <option value="">Todos os tipos</option>
+        <option value="empresa">Empresa</option>
+        <option value="pessoa">Pessoa</option>
+      </select>
     </div>
+
     <BaseSpinner v-if="loading" />
-    <div v-else-if="!entidades.length" class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
-      <p class="font-medium text-slate-800">Nenhuma entidade cadastrada</p>
-      <p class="muted mt-1 text-sm">Cadastre empresas ou pessoas para acompanhar a conformidade documental.</p>
-      <BaseButton v-if="podeCriar" class="mt-4" @click="abrirNova">+ Nova entidade</BaseButton>
+    <div v-else-if="!entidades.length" class="surface px-6 py-16 text-center">
+      <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-light text-primary">
+        <Building2 class="h-6 w-6" />
+      </div>
+      <p class="mt-4 text-base font-semibold text-ink">Nenhuma entidade cadastrada ainda</p>
+      <p class="mx-auto mt-1 max-w-md text-sm text-ink-muted">As entidades reúnem documentos, dossiês e modelos em um único lugar.</p>
+      <BaseButton v-if="podeCriar" class="mt-5" @click="abrirNova">+ Criar entidade</BaseButton>
     </div>
-    <BaseTable v-else>
+    <BaseTable v-else :empty="filtradas.length ? undefined : 'Nenhuma entidade encontrada para esta busca.'">
       <template #head>
-        <thead class="bg-slate-50">
+        <thead class="bg-canvas">
           <tr>
-            <th class="px-4 py-3 font-semibold">Nome</th>
-            <th class="px-4 py-3 font-semibold">Tipo</th>
-            <th class="px-4 py-3 font-semibold">Documento</th>
-            <th class="px-4 py-3 font-semibold">Dossiês</th>
-            <th class="px-4 py-3 font-semibold">Conformidade</th>
-            <th class="px-4 py-3 font-semibold">Criada em</th>
-            <th class="px-4 py-3 font-semibold">Ações</th>
+            <th class="th">Nome</th>
+            <th class="th">Tipo</th>
+            <th class="th">Documento</th>
+            <th class="th">Dossiês</th>
+            <th class="th">Conformidade</th>
+            <th class="th">Situação</th>
+            <th class="th text-right">Ações</th>
           </tr>
         </thead>
       </template>
-      <tr v-for="entidade in entidades" :key="entidade.id" class="hover:bg-slate-50">
-        <td class="px-4 py-3">
-          <RouterLink :to="`/entidades/${entidade.id}`" class="font-medium text-primary">{{ entidade.nome }}</RouterLink>
+      <tr v-for="entidade in filtradas" :key="entidade.id" class="hover:bg-canvas/70">
+        <td class="td">
+          <RouterLink :to="`/entidades/${entidade.id}`" class="flex items-center gap-3 font-medium text-ink hover:text-primary">
+            <span class="flex h-9 w-9 items-center justify-center rounded-full bg-primary-light text-primary">
+              <Building2 v-if="entidade.tipo === 'empresa'" class="h-4 w-4" />
+              <UserRound v-else class="h-4 w-4" />
+            </span>
+            {{ entidade.nome }}
+          </RouterLink>
         </td>
-        <td class="px-4 py-3 capitalize">{{ entidade.tipo === 'empresa' ? 'Empresa' : 'Pessoa' }}</td>
-        <td class="px-4 py-3">{{ entidade.documentoIdentificador || entidade.cnpjOuCpf || '—' }}</td>
-        <td class="px-4 py-3">{{ entidade._count?.dossies ?? entidade.dossies?.length ?? 0 }}</td>
-        <td class="px-4 py-3">
+        <td class="td text-ink-muted">{{ entidade.tipo === 'empresa' ? 'Empresa' : 'Pessoa' }}</td>
+        <td class="td text-ink-muted">{{ entidade.documentoIdentificador || entidade.cnpjOuCpf || '—' }}</td>
+        <td class="td">{{ entidade._count?.dossies ?? entidade.dossies?.length ?? 0 }}</td>
+        <td class="td">
           <div class="flex items-center gap-2">
-            <div class="h-1.5 w-20 overflow-hidden rounded-full bg-slate-200">
-              <div class="h-full rounded-full" :class="(entidade.conformidade?.percentual ?? 0) >= 100 ? 'bg-green-500' : 'bg-primary'" :style="{ width: `${entidade.conformidade?.percentual ?? 0}%` }" />
+            <div class="h-1.5 w-24 overflow-hidden rounded-full bg-slate-100">
+              <div class="h-full rounded-full" :class="conformidadeDe(entidade) >= 100 ? 'bg-emerald-500' : 'bg-primary'" :style="{ width: `${conformidadeDe(entidade)}%` }" />
             </div>
-            <span class="text-xs text-slate-600">{{ entidade.conformidade?.percentual ?? 0 }}%</span>
+            <span class="text-xs font-medium text-ink-muted">{{ conformidadeDe(entidade) }}%</span>
           </div>
         </td>
-        <td class="px-4 py-3 text-sm text-slate-500">{{ formatDate(entidade.criadoEm) }}</td>
-        <td class="px-4 py-3">
-          <div class="flex gap-2">
-            <BaseButton variant="ghost" @click="abrirEdicao(entidade)">Editar</BaseButton>
-            <BaseButton variant="ghost" class="!text-red-600 hover:!bg-red-50" @click="excluir(entidade)">Excluir</BaseButton>
-          </div>
+        <td class="td"><DossieStatusBadge :status="statusDossie(entidade)" /></td>
+        <td class="td text-right">
+          <RowMenu>
+            <RouterLink class="menu-item" :to="`/entidades/${entidade.id}`">Abrir dossiê</RouterLink>
+            <button v-if="podeCriar" type="button" class="menu-item" @click="abrirEdicao(entidade)">Editar</button>
+            <button v-if="podeCriar" type="button" class="menu-item menu-item-danger" @click="excluir(entidade)">Excluir</button>
+          </RowMenu>
         </td>
       </tr>
     </BaseTable>
 
-    <BaseModal :open="modalOpen" :title="editando ? 'Editar entidade' : 'Nova entidade'" @close="modalOpen = false">
-      <form class="space-y-4" @submit.prevent="salvar">
+    <BaseModal
+      :open="modalOpen"
+      :title="editando ? 'Editar entidade' : 'Nova entidade'"
+      description="Nome e documento bastam para começar o dossiê."
+      @close="modalOpen = false"
+    >
+      <form class="space-y-3" @submit.prevent="salvar">
         <div>
-          <label class="mb-1 block text-sm font-medium text-slate-700" for="entidade-tipo">Tipo</label>
-          <select id="entidade-tipo" v-model="form.tipo" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+          <label class="mb-1.5 block text-sm font-medium text-ink" for="entidade-tipo">Tipo</label>
+          <select id="entidade-tipo" v-model="form.tipo" class="field">
             <option value="empresa">Empresa</option>
             <option value="pessoa">Pessoa</option>
           </select>
         </div>
-        <BaseInput id="entidade-nome" v-model="form.nome" label="Nome" placeholder="Nome da empresa ou pessoa" />
-        <BaseInput id="entidade-doc" v-model="form.documentoIdentificador" label="Documento identificador" placeholder="Ex.: CNPJ / CPF / Inscrição municipal" />
-        <BaseInput id="entidade-doc-num" v-model="form.cnpjOuCpf" label="Número (somente dígitos)" placeholder="Apenas números" />
+        <BaseInput id="entidade-nome" v-model="form.nome" label="Nome" placeholder="Razão social ou nome completo" />
+        <BaseInput id="entidade-doc" v-model="form.documentoIdentificador" label="Documento" :placeholder="form.tipo === 'empresa' ? 'CNPJ' : 'CPF'" />
         <div class="flex justify-end gap-2 pt-2">
           <BaseButton variant="secondary" @click="modalOpen = false">Cancelar</BaseButton>
-          <BaseButton type="submit" :loading="salvando">Salvar</BaseButton>
+          <BaseButton type="submit" :loading="salvando">{{ editando ? 'Salvar' : 'Criar' }}</BaseButton>
         </div>
       </form>
     </BaseModal>

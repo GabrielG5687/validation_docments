@@ -9,6 +9,22 @@ import { Perfil } from '@prisma/client'
  *
  * Requirements: 2.5, 2.6
  */
+const PERFIS_REVISAO: Perfil[] = ['validador', 'coordenador', 'admin']
+
+/** Revisão humana: perfil de revisão ou OWNER/ADMIN da empresa ativa. */
+export function requireRevisor(req: Request, res: Response, next: NextFunction): void {
+  if (!req.user) {
+    res.status(401).json({ error: 'Token inválido ou expirado' })
+    return
+  }
+  const papel = req.empresa?.papel
+  if (PERFIS_REVISAO.includes(req.user.perfil) || papel === 'OWNER' || papel === 'ADMIN') {
+    next()
+    return
+  }
+  res.status(403).json({ error: 'Acesso negado para o perfil atual' })
+}
+
 export function requireRole(...perfis: Perfil[]) {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {

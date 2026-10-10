@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 import { z } from 'zod'
-import { StatusTemplate, Prisma } from '@prisma/client'
+import { StatusTemplate, Prisma, RegraValidacao } from '@prisma/client'
 import prisma from '../config/prisma'
 import { parseRegraParametros } from '../utils/regraParams'
 import { aplicarRegra } from '../services/validationService'
@@ -14,6 +14,7 @@ import {
   parseEstrutura,
 } from '../utils/estrutura'
 import { extrairValoresDeDocumento, onlyFilled } from '../services/extracaoCamposService'
+import { buscarTemplateDaEmpresa, whereTemplatesVisiveis } from '../utils/templateAccess'
 
 // ─── Zod schemas ──────────────────────────────────────────────────────────────
 
@@ -57,7 +58,8 @@ function incrementVersion(versao: string): string {
 /**
  * GET /api/templates
  *
- * Lists all templates with optional ?status filter.
+ * Lists the templates of the active company with optional ?status filter.
+ * Templates from other companies (and legacy orphans) are never returned.
  * Accessible by all authenticated profiles.
  *
  * Requirements: 3.1, 3.4, 3.5
@@ -76,7 +78,10 @@ export async function listTemplates(
 
     const { status } = parseResult.data
 
-    const where = status ? { status } : {}
+    const where: Prisma.TemplateWhereInput = {
+      ...whereTemplatesVisiveis(req.empresa?.id),
+      ...(status ? { status } : {}),
+    }
 
     const data = await prisma.template.findMany({
       where,
@@ -96,6 +101,9 @@ export async function listTemplates(
 
 /**
  * GET /api/templates/:id
+ *
+ * Returns 404 for templates outside the active company, so a guessed UUID
+ * cannot be used to reach another tenant's template.
  */
 export async function getTemplate(
   req: Request,
@@ -105,12 +113,9 @@ export async function getTemplate(
   try {
     const { id } = req.params
 
-    const template = await prisma.template.findUnique({
-      where: { id },
-      include: {
-        regras: { orderBy: { ordem: 'asc' } },
-        _count: { select: { regras: true, documentos: true, versoes: true } },
-      },
+    const template = await buscarTemplateDaEmpresa(id, req.empresa?.id, {
+      regras: { orderBy: { ordem: 'asc' } },
+      _count: { select: { regras: true, documentos: true, versoes: true } },
     })
 
     if (!template) {
@@ -127,8 +132,9 @@ export async function getTemplate(
 /**
  * POST /api/templates
  *
- * Creates a new template with status `rascunho` and versaoAtual `1.0`.
- * Protected: admin only.
+ * Creates a new template owned by the active company, with status `rascunho`
+ * and versaoAtual `1.0`.
+ * Protected: requireTemplateManager.
  *
  * Requirements: 3.1
  */
@@ -138,6 +144,11 @@ export async function createTemplate(
   next: NextFunction
 ): Promise<void> {
   try {
+    if (!req.empresa) {
+      res.status(400).json({ error: 'Nenhuma empresa ativa definida' })
+      return
+    }
+
     const parseResult = createTemplateSchema.safeParse(req.body)
     if (!parseResult.success) {
       res.status(422).json({ error: 'Corpo da requisição inválido', details: parseResult.error.flatten() })
@@ -154,6 +165,7 @@ export async function createTemplate(
         status: 'rascunho',
         versaoAtual: '1.0',
         validadeDias: validadeDias ?? null,
+        empresaId: req.empresa.id,
         estrutura: (estrutura ?? emptyEstrutura()) as Prisma.InputJsonValue,
       },
       include: {
@@ -170,10 +182,10 @@ export async function createTemplate(
 /**
  * PUT /api/templates/:id
  *
- * Updates a template.
+ * Updates a template of the active company.
  * If the template is currently `ativo`, its status is changed to `rascunho`
  * (changes are staged; the immutable published TemplateVersao snapshot is preserved).
- * Protected: admin only.
+ * Protected: requireTemplateManager.
  *
  * Requirements: 3.3
  */
@@ -193,7 +205,7 @@ export async function updateTemplate(
 
     const { nome, descricao, categoria, estrutura, validadeDias } = parseResult.data
 
-    const existing = await prisma.template.findUnique({ where: { id } })
+    const existing = await buscarTemplateDaEmpresa(id, req.empresa?.id)
     if (!existing) {
       res.status(404).json({ error: 'Template não encontrado' })
       return
@@ -228,8 +240,9 @@ export async function updateTemplate(
 /**
  * DELETE /api/templates/:id
  *
- * Deletes a template. Returns 409 if the template has associated documents.
- * Protected: admin only.
+ * Deletes a template of the active company.
+ * Returns 409 if the template has associated documents.
+ * Protected: requireTemplateManager.
  *
  * Requirements: 3.7
  */
@@ -241,9 +254,10 @@ export async function deleteTemplate(
   try {
     const { id } = req.params
 
-    const existing = await prisma.template.findUnique({
-      where: { id },
-      include: { _count: { select: { documentos: true, dossieItens: true } } },
+    const existing = await buscarTemplateDaEmpresa<{
+      _count: { documentos: number; dossieItens: number }
+    }>(id, req.empresa?.id, {
+      _count: { select: { documentos: true, dossieItens: true } },
     })
 
     if (!existing) {
@@ -272,12 +286,12 @@ export async function deleteTemplate(
 /**
  * POST /api/templates/:id/publicar
  *
- * Publishes a template:
+ * Publishes a template of the active company:
  * - Changes status to `ativo`
  * - Creates a TemplateVersao with a JSON snapshot of the current rules
  * - Increments versaoAtual (major version)
  *
- * Protected: admin only.
+ * Protected: requireTemplateManager.
  *
  * Requirements: 3.2, 3.5
  */
@@ -289,14 +303,11 @@ export async function publicarTemplate(
   try {
     const { id } = req.params
 
-    const template = await prisma.template.findUnique({
-      where: { id },
-      include: {
-        regras: {
-          orderBy: { ordem: 'asc' },
-        },
-      },
-    })
+    const template = await buscarTemplateDaEmpresa<{ regras: RegraValidacao[] }>(
+      id,
+      req.empresa?.id,
+      { regras: { orderBy: { ordem: 'asc' } } },
+    )
 
     if (!template) {
       res.status(404).json({ error: 'Template não encontrado' })
@@ -360,8 +371,8 @@ export async function publicarTemplate(
 /**
  * GET /api/templates/:id/versoes
  *
- * Lists all TemplateVersao entries for a template with date, version,
- * and the count of rules in the snapshot.
+ * Lists all TemplateVersao entries for a template of the active company with
+ * date, version, and the count of rules in the snapshot.
  * Accessible by all authenticated profiles.
  *
  * Requirements: 3.5, 3.6
@@ -374,7 +385,7 @@ export async function listVersoes(
   try {
     const { id } = req.params
 
-    const template = await prisma.template.findUnique({ where: { id } })
+    const template = await buscarTemplateDaEmpresa(id, req.empresa?.id)
     if (!template) {
       res.status(404).json({ error: 'Template não encontrado' })
       return
@@ -407,7 +418,7 @@ export async function listVersoes(
 /**
  * GET /api/templates/:id/regras
  *
- * Lists all validation rules for a template, ordered by `ordem`.
+ * Lists all validation rules for a template of the active company, ordered by `ordem`.
  * Accessible by all authenticated profiles.
  *
  * Requirements: 4.1, 4.8
@@ -420,7 +431,7 @@ export async function listRegras(
   try {
     const { id } = req.params
 
-    const template = await prisma.template.findUnique({ where: { id } })
+    const template = await buscarTemplateDaEmpresa(id, req.empresa?.id)
     if (!template) {
       res.status(404).json({ error: 'Template não encontrado' })
       return
@@ -449,9 +460,9 @@ export async function listRegras(
 /**
  * POST /api/templates/:id/regras
  *
- * Creates a validation rule for the template.
+ * Creates a validation rule for a template of the active company.
  * Validates required parameters per rule type via Zod.
- * Protected: admin only.
+ * Protected: requireTemplateManager.
  *
  * Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.7
  */
@@ -463,7 +474,7 @@ export async function createRegra(
   try {
     const { id: templateId } = req.params
 
-    const template = await prisma.template.findUnique({ where: { id: templateId } })
+    const template = await buscarTemplateDaEmpresa(templateId, req.empresa?.id)
     if (!template) {
       res.status(404).json({ error: 'Template não encontrado' })
       return
@@ -539,10 +550,11 @@ export async function testarTemplate(
   try {
     const { id } = req.params
 
-    const template = await prisma.template.findUnique({
-      where: { id },
-      include: { regras: { orderBy: { ordem: 'asc' } } },
-    })
+    const template = await buscarTemplateDaEmpresa<{ regras: RegraValidacao[] }>(
+      id,
+      req.empresa?.id,
+      { regras: { orderBy: { ordem: 'asc' } } },
+    )
     if (!template) {
       res.status(404).json({ error: 'Template não encontrado' })
       return

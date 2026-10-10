@@ -15,6 +15,23 @@ export async function extrairTexto(buffer: Buffer): Promise<string> {
   return data.text
 }
 
+export type PaginaExtraida = { numero: number; texto: string }
+
+export async function extrairPaginas(buffer: Buffer): Promise<PaginaExtraida[]> {
+  const paginas: PaginaExtraida[] = []
+  let numero = 0
+  await pdfParse(buffer, {
+    pagerender: async (pageData: { getTextContent: () => Promise<{ items: Array<{ str?: string }> }> }) => {
+      numero += 1
+      const content = await pageData.getTextContent()
+      const texto = content.items.map((item) => item.str || '').join(' ').replace(/[ \t]+/g, ' ').trim()
+      paginas.push({ numero, texto })
+      return texto
+    },
+  })
+  return paginas
+}
+
 /**
  * Extracts field values from a plain-text document by looking for simple
  * key-value patterns such as `fieldName: value` or `fieldName value` on the

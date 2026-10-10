@@ -103,6 +103,7 @@ model Empresa {
   membros   MembroEmpresa[]
   convites  ConviteEmpresa[]
   entidades Entidade[]
+  templates Template[]
 
   @@map("empresas")
 }
@@ -152,14 +153,17 @@ model Template {
   versaoAtual  String         @default("1.0")
   estrutura    Json?
   validadeDias Int?
+  empresaId    String?
   criadoEm    DateTime       @default(now())
   atualizadoEm DateTime      @updatedAt
 
+  empresa     Empresa?       @relation(fields: [empresaId], references: [id])
   versoes    TemplateVersao[]
   documentos Documento[]
   regras     RegraValidacao[]
   dossieItens DossieItem[]
 
+  @@index([empresaId])
   @@map("templates")
 }
 

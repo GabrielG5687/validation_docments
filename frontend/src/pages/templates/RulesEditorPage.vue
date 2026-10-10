@@ -81,11 +81,11 @@ async function addSuggested(rule: NonNullable<AnaliseIa['regrasSugeridas']>[numb
     <div class="mb-6 flex flex-wrap items-end justify-between gap-3">
       <h1 class="page-title">Editor de regras</h1>
       <div class="flex gap-2">
-        <BaseButton v-if="auth.perfil === 'admin'" variant="secondary" :loading="analyzing" @click="analyze">Analisar com IA</BaseButton>
+        <BaseButton v-if="auth.podeGerenciarTemplates" variant="secondary" :loading="analyzing" @click="analyze">Analisar com IA</BaseButton>
         <BaseButton @click="editing = undefined; showEditor = true">Nova regra</BaseButton>
       </div>
     </div>
-    <div v-if="auth.perfil === 'admin'" class="card mb-6 space-y-3">
+    <div v-if="auth.podeGerenciarTemplates" class="card mb-6 space-y-3">
       <h2 class="text-lg font-bold">Ajuda da IA</h2>
       <p class="text-sm text-slate-600">Analisa as regras atuais. Envie um PDF opcional para comparar com um documento de exemplo.</p>
       <FileDropzone @select="analysisFile = $event; analysisError = ''" @error="analysisError = $event" />

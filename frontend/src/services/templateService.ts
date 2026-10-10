@@ -23,6 +23,14 @@ export const templateService = {
     const { data } = await api.post<Template>('/api/templates/gerar-com-ia', form, iaTimeout)
     return data
   },
+  async generateRegex(descricao: string) {
+    const { data } = await api.post<{ regex: string; exemplo: string; descricao: string }>(
+      '/api/templates/gerar-regex',
+      { descricao },
+      iaTimeout,
+    )
+    return data
+  },
   async analyzeWithAi(id: string, file?: File) {
     const form = new FormData()
     if (file) form.append('arquivo', file)

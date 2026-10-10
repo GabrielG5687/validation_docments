@@ -8,7 +8,7 @@ import {
 const router = Router()
 
 /**
- * All routes in this file assume that `authenticate` and `requireRole('admin')`
+ * All routes in this file assume that `authenticate` and `requireTemplateManager`
  * have already been applied by app.ts before this router is mounted.
  *
  * PUT /api/regras/reordenar must be declared BEFORE PUT /api/regras/:id

@@ -13,6 +13,35 @@ export const useAuthStore = defineStore('auth', () => {
 
   const empresaAtiva = computed(() => empresas.value.find((e) => e.id === empresaAtivaId.value) || empresas.value[0] || null)
 
+  /** Espelha `podeGerenciarTemplates` do backend: admin global ou OWNER da empresa ativa. */
+  const podeGerenciarTemplates = computed(
+    () => perfil.value === 'admin' || empresaAtiva.value?.papel === 'OWNER',
+  )
+
+  const podeVerDashboard = computed(() => {
+    const papel = empresaAtiva.value?.papel
+    return papel === 'OWNER' || papel === 'ADMIN'
+  })
+
+  const podeRevisar = computed(() => {
+    const papel = empresaAtiva.value?.papel
+    if (papel === 'OWNER' || papel === 'ADMIN') return true
+    return perfil.value === 'validador' || perfil.value === 'coordenador' || perfil.value === 'admin'
+  })
+
+  const podeVerRelatorios = computed(() => {
+    const papel = empresaAtiva.value?.papel
+    if (papel === 'OWNER' || papel === 'ADMIN') return true
+    return perfil.value === 'coordenador' || perfil.value === 'admin'
+  })
+
+  const destinoInicial = computed(() => {
+    if (podeVerDashboard.value) return '/dashboard'
+    if (perfil.value === 'usuario') return '/documentos'
+    if (perfil.value === 'validador' || perfil.value === 'coordenador' || perfil.value === 'admin') return '/documentos/todos'
+    return '/entidades'
+  })
+
   function persistEmpresas(next: EmpresaResumo[], ativaId?: string) {
     empresas.value = next
     localStorage.setItem('docvalid_empresas', JSON.stringify(next))
@@ -65,6 +94,11 @@ export const useAuthStore = defineStore('auth', () => {
     empresas,
     empresaAtivaId,
     empresaAtiva,
+    podeGerenciarTemplates,
+    podeVerDashboard,
+    podeVerRelatorios,
+    podeRevisar,
+    destinoInicial,
     setSession,
     setEmpresas,
     setEmpresaAtiva,

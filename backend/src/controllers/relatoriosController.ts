@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 import { z } from 'zod'
 import prisma from '../config/prisma'
 import { exportarCSV, gerarMetricas } from '../services/reportService'
+import { whereTemplatesVisiveis } from '../utils/templateAccess'
 
 const DIAS_VENCIMENTO = 30
 
@@ -104,6 +105,10 @@ export async function relatorioCSV(req: Request, res: Response, next: NextFuncti
 export async function dashboard(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     if (!req.user) return
+    if (req.empresa?.papel !== 'OWNER' && req.empresa?.papel !== 'ADMIN') {
+      res.status(403).json({ error: 'O dashboard está disponível para proprietários e admins da organização.' })
+      return
+    }
     const perfil = req.user.perfil
     if (perfil === 'usuario') {
       const docs = await prisma.documento.findMany({ where: { usuarioId: req.user.id }, orderBy: { criadoEm: 'desc' }, take: 5, select: { id: true, nomeArquivo: true, status: true, criadoEm: true } })
@@ -144,7 +149,7 @@ export async function dashboard(req: Request, res: Response, next: NextFunction)
     const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1)
     const metricas = await gerarMetricas(perfil === 'coordenador' ? { dataInicio: inicioMes, dataFim: now } : {})
     const [templatesAtivos, usuariosPorPerfil, conformidade, vencendo30] = await Promise.all([
-      prisma.template.count({ where: { status: 'ativo' } }),
+      prisma.template.count({ where: { ...whereTemplatesVisiveis(req.empresa?.id), status: 'ativo' } }),
       prisma.usuario.groupBy({ by: ['perfil'], _count: { _all: true } }),
       resumirConformidade(),
       listarVencendo({}),

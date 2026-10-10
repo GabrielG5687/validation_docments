@@ -1,15 +1,17 @@
 import { Request, Response, NextFunction } from 'express'
-import { Prisma } from '@prisma/client'
+import { Prisma, RegraValidacao } from '@prisma/client'
 import prisma from '../config/prisma'
 import { extrairTexto } from '../services/pdfService'
 import {
   GroqConfigError,
   analisarTemplateComIa as analisarComGroq,
+  gerarRegexComIa as gerarRegexComGroq,
   gerarTemplateComIa as gerarComGroq,
   isGroqConfigured,
 } from '../services/groqService'
 import { pdfFromRequest } from '../utils/pdfFile'
 import { buildEstruturaFromRegras } from '../utils/estrutura'
+import { buscarTemplateDaEmpresa } from '../utils/templateAccess'
 
 function groqOrFail(res: Response): boolean {
   if (isGroqConfigured()) return true
@@ -31,7 +33,8 @@ function handleIaError(err: unknown, next: NextFunction, res: Response): void {
 
 /**
  * POST /api/templates/gerar-com-ia
- * Admin: envia um PDF de exemplo e cria um template rascunho com regras sugeridas.
+ * Gerenciador de templates: envia um PDF de exemplo e cria um template rascunho
+ * pertencente à empresa ativa, com regras sugeridas.
  */
 export async function gerarTemplateComIa(
   req: Request,
@@ -39,6 +42,10 @@ export async function gerarTemplateComIa(
   next: NextFunction
 ): Promise<void> {
   try {
+    if (!req.empresa) {
+      res.status(400).json({ error: 'Nenhuma empresa ativa definida' })
+      return
+    }
     if (!groqOrFail(res)) return
     const pdf = pdfFromRequest(req.file)
     if (!pdf.ok) {
@@ -54,6 +61,7 @@ export async function gerarTemplateComIa(
     }
 
     const gerado = await gerarComGroq(texto, nome)
+    const empresaId = req.empresa.id
 
     const template = await prisma.$transaction(async (tx) => {
       const created = await tx.template.create({
@@ -62,6 +70,7 @@ export async function gerarTemplateComIa(
           descricao: gerado.descricao || 'Template gerado com IA a partir de um documento de exemplo.',
           status: 'rascunho',
           versaoAtual: '1.0',
+          empresaId,
           estrutura: buildEstruturaFromRegras(gerado.regras) as Prisma.InputJsonValue,
           regras: {
             create: gerado.regras.map((regra, index) => ({
@@ -89,8 +98,24 @@ export async function gerarTemplateComIa(
 }
 
 /**
+ * POST /api/templates/gerar-regex
+ * Recebe a descrição do formato e devolve uma regex validada.
+ */
+export async function gerarRegexComIa(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    if (!groqOrFail(res)) return
+    const descricao = typeof req.body?.descricao === 'string' ? req.body.descricao : ''
+    const gerado = await gerarRegexComGroq(descricao)
+    res.status(200).json(gerado)
+  } catch (err) {
+    handleIaError(err, next, res)
+  }
+}
+
+/**
  * POST /api/templates/:id/analisar-ia
- * Admin: analisa as regras atuais e, se um PDF for enviado, compara com o documento.
+ * Gerenciador de templates: analisa as regras atuais de um template da empresa
+ * ativa e, se um PDF for enviado, compara com o documento.
  */
 export async function analisarTemplateComIa(
   req: Request,
@@ -99,10 +124,11 @@ export async function analisarTemplateComIa(
 ): Promise<void> {
   try {
     if (!groqOrFail(res)) return
-    const template = await prisma.template.findUnique({
-      where: { id: req.params.id },
-      include: { regras: { orderBy: { ordem: 'asc' } } },
-    })
+    const template = await buscarTemplateDaEmpresa<{ regras: RegraValidacao[] }>(
+      req.params.id,
+      req.empresa?.id,
+      { regras: { orderBy: { ordem: 'asc' } } },
+    )
     if (!template) {
       res.status(404).json({ error: 'Template não encontrado' })
       return

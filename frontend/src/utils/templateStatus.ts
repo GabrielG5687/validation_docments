@@ -7,10 +7,10 @@ export type TemplateBadge = {
 }
 
 export function templateBadge(template: Pick<Template, 'status' | '_count'>): TemplateBadge {
-  if (template.status === 'ativo') return { key: 'ativo', label: 'Ativo', className: 'bg-emerald-100 text-emerald-800' }
+  if (template.status === 'ativo') return { key: 'ativo', label: 'Ativo', className: 'bg-emerald-50 text-emerald-700' }
   if (template.status === 'inativo') return { key: 'inativo', label: 'Desativado', className: 'bg-slate-100 text-slate-600' }
-  if ((template._count?.versoes ?? 0) > 0) return { key: 'revisao', label: 'Em revisão', className: 'bg-violet-100 text-violet-800' }
-  return { key: 'rascunho', label: 'Rascunho', className: 'bg-amber-100 text-amber-800' }
+  if ((template._count?.versoes ?? 0) > 0) return { key: 'revisao', label: 'Em revisão', className: 'bg-violet-50 text-violet-700' }
+  return { key: 'rascunho', label: 'Rascunho', className: 'bg-amber-50 text-amber-700' }
 }
 
 export function relativeTime(value?: string | Date) {

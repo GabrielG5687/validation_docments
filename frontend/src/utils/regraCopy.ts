@@ -18,9 +18,12 @@ export function describeRegra(regra: Pick<RegraValidacao, 'tipo' | 'parametros' 
   if (regra.tipo === 'campo_obrigatorio') return `O campo “${campo || 'selecionado'}” precisa estar preenchido.`
   if (regra.tipo === 'formato') {
     const preset = presetFromRegex(String(params.regex ?? ''))
+    const descricao = String(params.formatoDescricao ?? '').trim()
     return preset
       ? `“${campo}” deve estar no formato de ${preset.label} (${preset.hint}).`
-      : `“${campo}” deve seguir o formato configurado.`
+      : descricao
+        ? `“${campo}” deve estar no formato: ${descricao}.`
+        : `“${campo}” deve seguir o formato configurado.`
   }
   if (regra.tipo === 'intervalo') {
     const min = Number(params.min)

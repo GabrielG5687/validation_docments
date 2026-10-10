@@ -8,10 +8,12 @@ import BaseAlert from '../../components/ui/BaseAlert.vue'
 import PdfViewer from '../../components/document/PdfViewer.vue'
 import ValidationResults from '../../components/document/ValidationResults.vue'
 import GovBrSignatureCard from '../../components/document/GovBrSignatureCard.vue'
+import EvidenciasExtraidas from '../../components/document/EvidenciasExtraidas.vue'
 import { assinaturaGovFromDados } from '../../utils/assinaturaGov'
 
 const route = useRoute()
 const router = useRouter()
+const documentId = String(route.params.id)
 const document = ref<Documento>()
 const observations = ref('')
 const error = ref('')
@@ -28,8 +30,8 @@ const camposExtraidos = computed(() => {
 
 onMounted(async () => {
   try {
-    document.value = await documentService.get(String(route.params.id))
-    await documentService.startReview(String(route.params.id))
+    document.value = await documentService.get(documentId)
+    await documentService.startReview(documentId)
     document.value.status = 'em_revisao'
   } catch (e: unknown) {
     error.value = (e as { response?: { data?: { error?: string } } }).response?.data?.error || 'Não foi possível iniciar a revisão.'
@@ -40,7 +42,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (!finalized && document.value?.status === 'em_revisao') {
-    documentService.cancelReview(String(route.params.id)).catch(() => undefined)
+    documentService.cancelReview(documentId).catch(() => undefined)
   }
 })
 
@@ -50,9 +52,9 @@ async function finish(result: 'aprovado' | 'reprovado') {
     return
   }
   try {
-    document.value = await documentService.finishReview(String(route.params.id), result, observations.value)
+    document.value = await documentService.finishReview(documentId, result, observations.value)
     finalized = true
-    router.push(`/documentos/${route.params.id}`)
+    router.push(`/documentos/${documentId}`)
   } catch (e: unknown) {
     error.value = (e as { response?: { data?: { error?: string } } }).response?.data?.error || 'Não foi possível finalizar a revisão.'
   }
@@ -67,6 +69,7 @@ async function finish(result: 'aprovado' | 'reprovado') {
     <div v-else-if="document" class="grid gap-6 lg:grid-cols-2">
       <div class="space-y-5">
         <PdfViewer :url="document.presignedUrl" />
+        <EvidenciasExtraidas :dados="document.dadosExtraidos" />
         <section class="card">
           <h2 class="mb-3 font-bold">Dados extraídos</h2>
           <dl class="grid grid-cols-2 gap-2 text-sm">

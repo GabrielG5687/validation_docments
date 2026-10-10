@@ -2,9 +2,11 @@ import { Prisma, StatusDocumento } from '@prisma/client'
 import prisma from '../config/prisma'
 import { downloadFile } from './minioService'
 import { BUCKET_DOCUMENTOS } from './minioService'
-import { extrairTexto } from './pdfService'
+import { extrairPaginas } from './pdfService'
 import { aplicarRegra } from './validationService'
-import { extrairValoresDeDocumento } from './extracaoCamposService'
+import { extrairCamadas } from './extracaoCamposService'
+import { diagnosticarTexto } from './extracao/evidenciaService'
+import { falhaSoInconclusiva, resolverCandidatos } from './extracao/resolverCandidatos'
 import { parseEstrutura, flattenCampos } from '../utils/estrutura'
 import { validacaoAssinaturaIndisponivel, validarAssinaturasPdf } from './assinatura/signatureValidationService'
 import { calcularValidadeDocumento } from './validadeService'
@@ -52,7 +54,24 @@ export async function processarDocumento(documentoId: string): Promise<void> {
 
   try {
     const buffer = await downloadFile(BUCKET_DOCUMENTOS, documento.minioKey)
-    const texto = await withTimeout(extrairTexto(buffer), 60_000)
+    const paginas = await withTimeout(extrairPaginas(buffer), 60_000)
+    const diagnostico = diagnosticarTexto(paginas)
+    if (diagnostico === 'sem_texto_selecionavel') {
+      await prisma.documento.update({
+        where: { id: documentoId },
+        data: {
+          status: 'erro_extracao',
+          dadosExtraidos: {
+            erroExtracao: 'PDF sem texto selecionável. A extração não inventou campos.',
+            _extracao: { versao: 1, diagnostico, ia: 'nao_aplicada', campos: [] },
+          },
+        },
+      })
+      await prisma.historicoStatus.create({
+        data: { documentoId, statusAnterior: 'processando', statusNovo: 'erro_extracao' },
+      }).catch(() => undefined)
+      return
+    }
     const estrutura = parseEstrutura(documento.template.estrutura)
     const rotulos: Record<string, string> = {}
     const campos = new Set<string>()
@@ -65,8 +84,8 @@ export async function processarDocumento(documentoId: string): Promise<void> {
       if (typeof params.campo === 'string') campos.add(params.campo)
       if (typeof params.campo_resultado === 'string') campos.add(params.campo_resultado)
     }
-    const extraido = await extrairValoresDeDocumento({
-      texto,
+    const extraido = await extrairCamadas({
+      paginas,
       chaves: [...campos],
       rotulos,
       regras: documento.template.regras.map((regra) => ({
@@ -75,7 +94,15 @@ export async function processarDocumento(documentoId: string): Promise<void> {
         parametros: regra.parametros,
       })),
     })
-    const dados: Record<string, unknown> = { ...extraido.valores }
+    const resolvido = resolverCandidatos({
+      chaves: [...campos],
+      paginas,
+      regex: extraido.regex,
+      ia: extraido.ia,
+      diagnostico,
+      iaStatus: extraido.iaStatus,
+    })
+    const dados: Record<string, unknown> = { ...resolvido.confirmados, _extracao: resolvido.extracao }
     let observacaoIa = extraido.resumo || ''
     if (extraido.resumo || extraido.alertas?.length) {
       dados._analiseIa = { resumo: extraido.resumo || '', alertas: extraido.alertas || [] }
@@ -93,17 +120,34 @@ export async function processarDocumento(documentoId: string): Promise<void> {
       if (key.startsWith('_')) continue
       if (typeof value === 'string') camposParaRegras[key] = value
     }
+    const assinatura = dados._assinaturaGov as { status?: string; assinaturas?: Array<{ valida?: boolean; assinante?: string }> } | undefined
+    if (assinatura?.status === 'VALIDA') {
+      const assinante = assinatura.assinaturas?.find((item) => item.valida && item.assinante)?.assinante
+      if (assinante) {
+        for (const regra of documento.template.regras) {
+          const params = (regra.parametros && typeof regra.parametros === 'object' ? regra.parametros : {}) as Record<string, unknown>
+          const campo = typeof params.campo === 'string' ? params.campo : ''
+          const mencionaAssinatura = `${campo} ${regra.nome}`.toLowerCase().includes('assinatura')
+          const pareceData = `${campo} ${regra.nome}`.toLowerCase().includes('data')
+          if (regra.tipo !== 'campo_obrigatorio' || !campo || !mencionaAssinatura || pareceData || camposParaRegras[campo]?.trim()) continue
+          camposParaRegras[campo] = assinante
+          dados[campo] = assinante
+        }
+      }
+    }
 
     const validade = calcularValidadeDocumento(dados, documento.template.validadeDias)
 
     await changeStatus(documentoId, 'aguardando_validacao')
     const resultados = documento.template.regras.map((regra) => aplicarRegra(regra, camposParaRegras))
     const falhaObrigatoria = documento.template.regras.some((regra, i) => regra.obrigatoria && resultados[i].status === 'reprovado')
-    const resultado = falhaObrigatoria ? 'reprovado' : 'aprovado'
-    const novoStatus = falhaObrigatoria ? 'reprovado_automatico' : 'aguardando_revisao'
+    const soInconclusivo = falhaSoInconclusiva(documento.template.regras, resultados, resolvido.inconclusivos)
+    const resultado = falhaObrigatoria && !soInconclusivo ? 'reprovado' : 'aprovado'
+    const novoStatus = falhaObrigatoria && !soInconclusivo ? 'reprovado_automatico' : 'aguardando_revisao'
     const validatorId = await systemValidatorId()
     const observacoes = [
-      falhaObrigatoria ? 'Uma ou mais regras obrigatórias não foram atendidas.' : null,
+      falhaObrigatoria && !soInconclusivo ? 'Uma ou mais regras obrigatórias não foram atendidas.' : null,
+      soInconclusivo ? 'Há campos sem evidência verificável ou em conflito. A aprovação automática foi retida.' : null,
       observacaoIa || null,
     ].filter(Boolean).join(' ')
 

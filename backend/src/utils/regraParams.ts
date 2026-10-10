@@ -1,10 +1,12 @@
 import { z, ZodError } from 'zod'
 import { TipoRegra } from '@prisma/client'
+import { corrigirRegexData } from '../services/validationService'
 
 const campoObrigatorioSchema = z.object({ campo: z.string().min(1, 'campo é obrigatório') })
 const formatoSchema = z.object({
   campo: z.string().min(1, 'campo é obrigatório'),
   regex: z.string().min(1, 'regex é obrigatório'),
+  formatoDescricao: z.string().trim().max(240).optional(),
 })
 const intervaloSchema = z.object({
   campo: z.string().min(1, 'campo é obrigatório'),
@@ -34,7 +36,8 @@ export function parseRegraParametros(
   }
   if (tipo === 'formato') {
     const result = formatoSchema.safeParse(raw)
-    return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    if (!result.success) return { success: false, error: result.error }
+    return { success: true, data: { ...result.data, regex: corrigirRegexData(result.data.regex) } }
   }
   if (tipo === 'intervalo') {
     const result = intervaloSchema.safeParse(raw)

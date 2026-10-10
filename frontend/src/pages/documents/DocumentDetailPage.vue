@@ -13,7 +13,9 @@ import DocumentStatusTimeline from '../../components/document/DocumentStatusTime
 import ApprovalSeal from '../../components/document/ApprovalSeal.vue'
 import ValidadeSeal from '../../components/document/ValidadeSeal.vue'
 import GovBrSignatureCard from '../../components/document/GovBrSignatureCard.vue'
+import EvidenciasExtraidas from '../../components/document/EvidenciasExtraidas.vue'
 import { documentService } from '../../services/documentService'
+import { useAuthStore } from '../../stores/auth'
 import type { AnaliseIa } from '../../types'
 import { analiseAprovada } from '../../utils/analiseStatus'
 import { assinaturaGovFromDados } from '../../utils/assinaturaGov'
@@ -21,9 +23,13 @@ import { assinaturaGovFromDados } from '../../utils/assinaturaGov'
 const route = useRoute()
 const router = useRouter()
 const store = useDocumentStore()
+const auth = useAuthStore()
 const { poll } = useDocument()
 const copied = ref(false)
 const revalidating = ref(false)
+const reviewing = ref(false)
+const observacoes = ref('')
+const reviewError = ref('')
 
 const analiseIa = computed(() => {
   const raw = store.documentoAtual?.dadosExtraidos?._analiseIa
@@ -40,6 +46,10 @@ const camposExtraidos = computed(() => {
   )
 })
 const approved = computed(() => analiseAprovada(store.documentoAtual))
+const podeRevisar = computed(() => {
+  const status = store.documentoAtual?.status
+  return (status === 'aguardando_revisao' || status === 'em_revisao') && auth.podeRevisar
+})
 
 onMounted(async () => {
   try {
@@ -57,6 +67,28 @@ async function copyCode() {
     await navigator.clipboard?.writeText(store.documentoAtual.codigoVerificacao)
     copied.value = true
     setTimeout(() => { copied.value = false }, 2000)
+  }
+}
+
+async function confirmarRevisao(resultado: 'aprovado' | 'reprovado') {
+  const documento = store.documentoAtual
+  if (!documento) return
+  if (resultado === 'reprovado' && observacoes.value.trim().length < 10) {
+    reviewError.value = 'Informe o motivo da reprovação (mínimo 10 caracteres).'
+    return
+  }
+  reviewing.value = true
+  reviewError.value = ''
+  try {
+    if (documento.status === 'aguardando_revisao') {
+      await documentService.startReview(documento.id)
+    }
+    await documentService.finishReview(documento.id, resultado, observacoes.value)
+    await store.get(documento.id)
+  } catch (e: unknown) {
+    reviewError.value = (e as { response?: { data?: { error?: string } } }).response?.data?.error || 'Não foi possível confirmar a revisão.'
+  } finally {
+    reviewing.value = false
   }
 }
 
@@ -85,6 +117,7 @@ async function revalidateSignature() {
           <h1 class="page-title">{{ store.documentoAtual.nomeArquivo }}</h1>
         </div>
         <div class="flex items-center gap-4">
+          <BaseButton v-if="podeRevisar" :loading="reviewing" @click="confirmarRevisao('aprovado')">Confirmar revisão</BaseButton>
           <ApprovalSeal v-if="approved" compact />
           <BaseBadge :status="store.documentoAtual.status" />
           <ValidadeSeal v-if="store.documentoAtual.status === 'aprovado' && store.documentoAtual.statusValidade" :status="store.documentoAtual.statusValidade" :dias-para-vencer="store.documentoAtual.diasParaVencer" :data-validade="store.documentoAtual.dataValidade" />
@@ -98,6 +131,22 @@ async function revalidateSignature() {
         <BaseButton variant="secondary" @click="copyCode">{{ copied ? 'Copiado!' : 'Copiar código' }}</BaseButton>
         <img v-if="store.documentoAtual.qrcodeUrl" :src="store.documentoAtual.qrcodeUrl" alt="QR Code de verificação" class="h-20 w-20" />
       </div>
+      <section v-if="podeRevisar" class="card mb-6">
+        <h2 class="text-base font-semibold text-ink">Parecer da revisão</h2>
+        <p class="mt-1 text-sm text-ink-muted">Confirme se o documento está conforme. Para reprovar, descreva o motivo.</p>
+        <textarea
+          id="observacoes-revisao"
+          v-model="observacoes"
+          rows="3"
+          class="mt-4 w-full rounded-lg border border-line bg-white p-3 text-sm text-ink"
+          placeholder="Observações do parecer"
+        />
+        <p v-if="reviewError" class="mt-3 text-sm text-red-700">{{ reviewError }}</p>
+        <div class="mt-4 flex flex-wrap gap-3">
+          <BaseButton :loading="reviewing" @click="confirmarRevisao('aprovado')">Confirmar revisão</BaseButton>
+          <BaseButton variant="danger" :loading="reviewing" @click="confirmarRevisao('reprovado')">Reprovar</BaseButton>
+        </div>
+      </section>
       <div class="grid gap-6 lg:grid-cols-2">
         <div class="space-y-6">
           <section class="card relative overflow-hidden">
@@ -129,6 +178,7 @@ async function revalidateSignature() {
             <p class="mt-1 text-sm text-slate-600">Ainda não há resultado criptográfico armazenado para este documento.</p>
             <BaseButton class="mt-3" variant="secondary" :loading="revalidating" @click="revalidateSignature">Validar assinatura</BaseButton>
           </section>
+          <EvidenciasExtraidas :dados="store.documentoAtual.dadosExtraidos" />
           <section v-if="analiseIa" class="card">
             <h2 class="mb-4 text-lg font-bold">Análise da IA</h2>
             <p v-if="analiseIa.resumo" class="text-sm text-slate-700">{{ analiseIa.resumo }}</p>

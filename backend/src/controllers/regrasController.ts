@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express'
 import { z } from 'zod'
 import { Prisma } from '@prisma/client'
 import prisma from '../config/prisma'
+import { regraDaEmpresa } from '../utils/templateAccess'
 
 // ─── Zod schemas ──────────────────────────────────────────────────────────────
 
@@ -81,8 +82,8 @@ function validateParametros(
 /**
  * PUT /api/regras/:id
  *
- * Updates an existing validation rule.
- * Protected: admin only (enforced by route middleware).
+ * Updates an existing validation rule of a template in the active company.
+ * Protected: requireTemplateManager.
  *
  * Requirements: 4.6
  */
@@ -94,7 +95,7 @@ export async function updateRegra(
   try {
     const { id } = req.params
 
-    const existing = await prisma.regraValidacao.findUnique({ where: { id } })
+    const existing = await regraDaEmpresa(id, req.empresa?.id)
     if (!existing) {
       res.status(404).json({ error: 'Regra não encontrada' })
       return
@@ -162,8 +163,8 @@ export async function updateRegra(
 /**
  * DELETE /api/regras/:id
  *
- * Deletes a validation rule.
- * Protected: admin only (enforced by route middleware).
+ * Deletes a validation rule of a template in the active company.
+ * Protected: requireTemplateManager.
  *
  * Requirements: 4.6
  */
@@ -175,7 +176,7 @@ export async function deleteRegra(
   try {
     const { id } = req.params
 
-    const existing = await prisma.regraValidacao.findUnique({ where: { id } })
+    const existing = await regraDaEmpresa(id, req.empresa?.id)
     if (!existing) {
       res.status(404).json({ error: 'Regra não encontrada' })
       return
@@ -192,8 +193,9 @@ export async function deleteRegra(
 /**
  * PUT /api/regras/reordenar
  *
- * Bulk-updates the `ordem` field for multiple rules.
- * Protected: admin only (enforced by route middleware).
+ * Bulk-updates the `ordem` field for multiple rules of a template in the
+ * active company.
+ * Protected: requireTemplateManager.
  *
  * Request body: { ordens: [{ id: "uuid", ordem: 1 }, ...] }
  * Response: { updated: N }
@@ -220,10 +222,14 @@ export async function reordenarRegras(
       return
     }
     const existing = await prisma.regraValidacao.findMany({
-      where: { id: { in: ids } },
+      where: { id: { in: ids }, template: { empresaId: req.empresa?.id } },
       select: { id: true, templateId: true },
     })
-    if (existing.length !== ids.length || new Set(existing.map((item) => item.templateId)).size > 1) {
+    if (existing.length !== ids.length) {
+      res.status(404).json({ error: 'Uma ou mais regras não encontradas nesta empresa' })
+      return
+    }
+    if (new Set(existing.map((item) => item.templateId)).size > 1) {
       res.status(422).json({ error: 'As regras devem pertencer ao mesmo template' })
       return
     }

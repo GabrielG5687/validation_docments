@@ -10,6 +10,8 @@ import BaseButton from '../../components/ui/BaseButton.vue'
 import BaseSpinner from '../../components/ui/BaseSpinner.vue'
 import BaseInput from '../../components/ui/BaseInput.vue'
 import BaseModal from '../../components/ui/BaseModal.vue'
+import PageHeader from '../../components/ui/PageHeader.vue'
+import RowMenu from '../../components/ui/RowMenu.vue'
 import DossieStatusBadge from '../../components/entidades/DossieStatusBadge.vue'
 import ValidadeSeal from '../../components/document/ValidadeSeal.vue'
 
@@ -170,6 +172,31 @@ onMounted(async () => {
   await load()
 })
 
+const novoItem = ref<Record<string, { templateId: string; obrigatorio: boolean }>>({})
+
+function itemDraft(dossieId: string) {
+  return novoItem.value[dossieId] ?? { templateId: '', obrigatorio: true }
+}
+
+function patchItem(dossieId: string, patch: Partial<{ templateId: string; obrigatorio: boolean }>) {
+  novoItem.value = { ...novoItem.value, [dossieId]: { ...itemDraft(dossieId), ...patch } }
+}
+
+function templatesFora(dossie: Dossie) {
+  const usados = new Set((dossie.itens || []).map((item) => item.templateId))
+  return activeTemplates.value.filter((template) => !usados.has(template.id))
+}
+
+async function confirmarItem(dossie: Dossie) {
+  const draft = itemDraft(dossie.id)
+  if (!draft.templateId) {
+    notice.push({ type: 'warning', message: 'Escolha um modelo para adicionar.' })
+    return
+  }
+  await adicionarItem(dossie, draft.templateId, draft.obrigatorio)
+  patchItem(dossie.id, { templateId: '' })
+}
+
 const percentual = computed(() => conformidade.value?.percentual ?? 0)
 const itensForaConformidade = computed(() =>
   (conformidade.value?.itens ?? []).filter((item) => item.status !== 'atendido'),
@@ -181,131 +208,142 @@ function irParaDocumento(item: DossieItem): string {
 </script>
 <template>
   <div class="space-y-6">
-    <template v-if="loading">
-      <BaseSpinner />
-    </template>
+    <BaseSpinner v-if="loading" />
     <template v-else-if="entidade">
-      <div class="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p class="muted"><RouterLink to="/entidades" class="hover:text-primary">Entidades</RouterLink> / detalhe</p>
-          <h1 class="page-title">{{ entidade.nome }}</h1>
-          <p class="muted">{{ entidade.tipo === 'empresa' ? 'Empresa' : 'Pessoa' }} · {{ entidade.documentoIdentificador || entidade.cnpjOuCpf || 'Sem documento' }} · Criada em {{ formatDate(entidade.criadoEm) }}</p>
-        </div>
+      <PageHeader
+        kicker="Entidades"
+        :title="entidade.nome"
+        :description="`${entidade.tipo === 'empresa' ? 'Empresa' : 'Pessoa'} · ${entidade.documentoIdentificador || entidade.cnpjOuCpf || 'Sem documento'} · desde ${formatDate(entidade.criadoEm)}`"
+      >
+        <RouterLink to="/entidades" class="inline-flex h-10 items-center rounded-lg px-3 text-sm font-semibold text-ink-muted hover:bg-white">Voltar</RouterLink>
         <BaseButton @click="abrirNovoDossie">Novo dossiê</BaseButton>
-      </div>
+      </PageHeader>
 
-      <div class="grid gap-4 sm:grid-cols-4">
-        <div class="card">
-          <p class="muted text-sm">Conformidade</p>
-          <p class="text-3xl font-bold" :class="percentual >= 100 ? 'text-green-600' : 'text-primary'">{{ percentual }}%</p>
-          <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200">
-            <div class="h-full rounded-full" :class="percentual >= 100 ? 'bg-green-500' : 'bg-primary'" :style="{ width: `${percentual}%` }" />
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="card !p-4">
+          <p class="text-sm text-ink-muted">Conformidade</p>
+          <p class="mt-1 text-3xl font-semibold" :class="percentual >= 100 ? 'text-emerald-700' : 'text-primary'">{{ percentual }}%</p>
+          <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100">
+            <div class="h-full rounded-full" :class="percentual >= 100 ? 'bg-emerald-500' : 'bg-primary'" :style="{ width: `${percentual}%` }" />
           </div>
         </div>
-        <div class="card">
-          <p class="muted text-sm">Obrigatórios</p>
-          <p class="text-3xl font-bold">{{ itensObrigatorios }}</p>
+        <div class="card !p-4">
+          <p class="text-sm text-ink-muted">Obrigatórios</p>
+          <p class="mt-1 text-3xl font-semibold">{{ itensObrigatorios }}</p>
         </div>
-        <div class="card">
-          <p class="muted text-sm">Atendidos</p>
-          <p class="text-3xl font-bold text-green-600">{{ itensAtendidos }}</p>
+        <div class="card !p-4">
+          <p class="text-sm text-ink-muted">Atendidos</p>
+          <p class="mt-1 text-3xl font-semibold text-emerald-700">{{ itensAtendidos }}</p>
         </div>
-        <div class="card">
-          <p class="muted text-sm">Vencidos</p>
-          <p class="text-3xl font-bold" :class="itensVencidos ? 'text-red-600' : 'text-slate-700'">{{ itensVencidos }}</p>
+        <div class="card !p-4">
+          <p class="text-sm text-ink-muted">Vencidos ou faltando</p>
+          <p class="mt-1 text-3xl font-semibold" :class="itensForaConformidade.length ? 'text-amber-700' : 'text-ink'">{{ itensForaConformidade.length }}</p>
         </div>
       </div>
 
-      <div v-if="conformidade" class="card p-4">
-        <h2 class="mb-3 font-semibold">Itens fora de conformidade</h2>
-        <ul v-if="itensForaConformidade.length" class="divide-y divide-slate-100">
-          <li v-for="item in itensForaConformidade" :key="item.dossieId + item.id" class="flex items-center justify-between gap-3 py-2 text-sm">
-            <span class="text-slate-700">{{ item.dossieNome || 'Dossiê' }} — {{ item.templateNome }} <em v-if="!item.obrigatorio" class="text-slate-400">(opcional)</em></span>
+      <section v-if="conformidade" class="surface">
+        <div class="flex items-center justify-between border-b border-line px-5 py-4">
+          <div>
+            <h2 class="text-sm font-semibold text-ink">Próxima ação</h2>
+            <p class="text-sm text-ink-muted">{{ itensForaConformidade.length ? 'Envie ou solicite o que ainda não está em dia.' : 'Esta entidade está em conformidade.' }}</p>
+          </div>
+        </div>
+        <ul v-if="itensForaConformidade.length" class="divide-y divide-line">
+          <li v-for="item in itensForaConformidade" :key="item.dossieId + item.id" class="flex items-center justify-between gap-3 px-5 py-3 text-sm">
+            <span class="text-ink">{{ item.templateNome }} <span class="text-ink-muted">· {{ item.dossieNome || 'Dossiê' }}</span></span>
             <span :class="['rounded-full px-2.5 py-1 text-xs font-semibold', corItem(item)]">{{ rotuloItem(item) }}</span>
           </li>
         </ul>
-        <p v-else class="muted text-sm">Nenhum item pendente. Entidade em conformidade.</p>
+      </section>
+
+      <div v-if="!dossies.length" class="surface px-6 py-12 text-center">
+        <p class="font-semibold text-ink">Nenhum dossiê nesta entidade</p>
+        <p class="mt-1 text-sm text-ink-muted">O dossiê define quais modelos precisam estar válidos.</p>
+        <BaseButton class="mt-4" @click="abrirNovoDossie">Criar dossiê</BaseButton>
       </div>
 
-      <div v-if="!dossies.length" class="card muted">Nenhum dossiê criado para esta entidade.</div>
-
-      <div v-for="dossie in dossies" :key="dossie.id" class="card space-y-3">
-        <div class="flex flex-wrap items-center justify-between gap-3">
+      <section v-for="dossie in dossies" :key="dossie.id" class="surface">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
           <div>
-            <h2 class="font-semibold">{{ dossie.nome }}</h2>
-            <p v-if="dossie.descricao" class="muted mt-0.5 text-sm">{{ dossie.descricao }}</p>
+            <div class="flex items-center gap-2">
+              <h2 class="font-semibold text-ink">{{ dossie.nome }}</h2>
+              <DossieStatusBadge :status="dossie.status" />
+            </div>
+            <p v-if="dossie.descricao" class="mt-0.5 text-sm text-ink-muted">{{ dossie.descricao }}</p>
           </div>
-          <div class="flex items-center gap-3">
-            <DossieStatusBadge :status="dossie.status" />
-            <BaseButton variant="ghost" @click="requisitar(dossie)">Requisitar</BaseButton>
-            <BaseButton variant="ghost" @click="removerDossie(dossie)">Excluir</BaseButton>
-          </div>
+          <RowMenu>
+            <button type="button" class="menu-item" @click="requisitar(dossie)">Solicitar pendentes</button>
+            <button type="button" class="menu-item menu-item-danger" @click="removerDossie(dossie)">Excluir dossiê</button>
+          </RowMenu>
         </div>
-
         <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="border-b border-slate-100 text-left text-xs uppercase text-slate-500">
-                <th class="py-2 pr-4">Item</th>
-                <th class="py-2 pr-4">Obrigatório</th>
-                <th class="py-2 pr-4">Status</th>
-                <th class="py-2 pr-4">Documento</th>
-                <th class="py-2 text-right">Ações</th>
+          <table class="min-w-full text-left">
+            <thead class="bg-canvas">
+              <tr>
+                <th class="th">Documento exigido</th>
+                <th class="th">Exigência</th>
+                <th class="th">Situação</th>
+                <th class="th">Arquivo</th>
+                <th class="th text-right">Ação</th>
               </tr>
             </thead>
-            <tbody>
-              <tr v-for="item in dossie.itens" :key="item.id" class="border-b border-slate-50">
-                <td class="py-2 pr-4">{{ item.templateNome }}</td>
-                <td class="py-2 pr-4">{{ item.obrigatorio ? 'Sim' : 'Não' }}</td>
-                <td class="py-2 pr-4"><span :class="['inline-flex rounded-full px-2.5 py-1 text-xs font-semibold', corItem(item)]">{{ rotuloItem(item) }}</span></td>
-                <td class="py-2 pr-4">
-                  <RouterLink v-if="item.documento" :to="irParaDocumento(item)" class="text-primary hover:underline">{{ item.documento.nomeArquivo }}</RouterLink>
-                  <span v-else class="muted">—</span>
+            <tbody class="divide-y divide-line">
+              <tr v-for="item in dossie.itens" :key="item.id">
+                <td class="td font-medium">{{ item.templateNome }}</td>
+                <td class="td text-ink-muted">{{ item.obrigatorio ? 'Obrigatório' : 'Opcional' }}</td>
+                <td class="td"><span :class="['inline-flex rounded-full px-2.5 py-1 text-xs font-semibold', corItem(item)]">{{ rotuloItem(item) }}</span></td>
+                <td class="td">
+                  <RouterLink v-if="item.documento" :to="irParaDocumento(item)" class="font-medium text-primary hover:underline">{{ item.documento.nomeArquivo }}</RouterLink>
+                  <span v-else class="text-ink-muted">Ainda não enviado</span>
                   <ValidadeSeal v-if="item.documento?.statusValidade" :status="item.documento?.statusValidade" :dias-para-vencer="item.documento?.diasParaVencer" class="ml-2" />
                 </td>
-                <td class="py-2 text-right">
-                  <div class="flex justify-end gap-2">
-                    <BaseButton variant="ghost" @click="enviarItem(dossie, item)">Enviar</BaseButton>
-                    <BaseButton variant="ghost" @click="requisitar(dossie, item)">Solicitar</BaseButton>
-                    <BaseButton variant="ghost" @click="removerItem(item)">Remover</BaseButton>
-                    <input :id="`upload-item-${item.id}`" type="file" accept=".pdf,application/pdf" class="hidden" @change="onFileChange(dossie, item, $event)" />
-                  </div>
+                <td class="td text-right">
+                  <BaseButton v-if="item.status !== 'atendido'" @click="enviarItem(dossie, item)">Enviar PDF</BaseButton>
+                  <RowMenu v-else>
+                    <button type="button" class="menu-item" @click="enviarItem(dossie, item)">Substituir arquivo</button>
+                    <button type="button" class="menu-item" @click="requisitar(dossie, item)">Solicitar novamente</button>
+                    <button type="button" class="menu-item menu-item-danger" @click="removerItem(item)">Remover item</button>
+                  </RowMenu>
+                  <input :id="`upload-item-${item.id}`" type="file" accept=".pdf,application/pdf" class="hidden" @change="onFileChange(dossie, item, $event)" />
+                  <RowMenu v-if="item.status !== 'atendido'">
+                    <button type="button" class="menu-item" @click="requisitar(dossie, item)">Solicitar</button>
+                    <button type="button" class="menu-item menu-item-danger" @click="removerItem(item)">Remover item</button>
+                  </RowMenu>
                 </td>
               </tr>
               <tr v-if="!dossie.itens?.length">
-                <td colspan="5" class="py-3 muted">Dossiê sem itens.</td>
+                <td colspan="5" class="px-5 py-6 text-sm text-ink-muted">Este dossiê ainda não exige nenhum modelo.</td>
               </tr>
             </tbody>
           </table>
         </div>
-
-        <div v-if="activeTemplates.length" class="border-t border-slate-100 pt-3">
-          <p class="mb-2 text-xs font-semibold uppercase text-slate-500">Adicionar item ao dossiê</p>
-          <div class="flex flex-wrap gap-2">
-            <div v-for="template in activeTemplates" :key="template.id" class="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-sm">
-              <span class="text-slate-700">{{ template.nome }}</span>
-              <label class="flex items-center gap-1 text-xs text-slate-500"><input type="checkbox" checked /> Obrigatório</label>
-              <button class="text-primary hover:underline" @click="adicionarItem(dossie, template.id, true)">+ Adicionar</button>
-            </div>
-          </div>
+        <div v-if="templatesFora(dossie).length" class="flex flex-wrap items-center gap-2 border-t border-line px-5 py-3">
+          <select class="field max-w-xs" :aria-label="`Adicionar modelo em ${dossie.nome}`" :value="itemDraft(dossie.id).templateId" @change="patchItem(dossie.id, { templateId: ($event.target as HTMLSelectElement).value })">
+            <option value="">Adicionar modelo…</option>
+            <option v-for="template in templatesFora(dossie)" :key="template.id" :value="template.id">{{ template.nome }}</option>
+          </select>
+          <label class="flex items-center gap-2 text-sm text-ink-muted">
+            <input type="checkbox" class="h-4 w-4 rounded border-line text-primary" :checked="itemDraft(dossie.id).obrigatorio" @change="patchItem(dossie.id, { obrigatorio: ($event.target as HTMLInputElement).checked })" />
+            Obrigatório
+          </label>
+          <BaseButton variant="secondary" @click="confirmarItem(dossie)">Adicionar</BaseButton>
         </div>
-      </div>
+      </section>
     </template>
 
-    <BaseModal :open="modalDossie" title="Novo dossiê" @close="modalDossie = false">
-      <form class="space-y-4" @submit.prevent="criarDossie">
-        <BaseInput id="dossie-nome" v-model="dossieForm.nome" label="Nome" placeholder="Ex.: Pasta anual da empresa" />
-        <BaseInput id="dossie-desc" v-model="dossieForm.descricao" label="Descrição" placeholder="Opcional" />
+    <BaseModal :open="modalDossie" title="Novo dossiê" description="Escolha os modelos que esta entidade precisa manter em dia." @close="modalDossie = false">
+      <form class="space-y-3" @submit.prevent="criarDossie">
+        <BaseInput id="dossie-nome" v-model="dossieForm.nome" label="Nome" placeholder="Pasta anual" />
         <div>
-          <p class="mb-2 text-sm font-medium text-slate-700">Templates</p>
-          <div v-if="activeTemplates.length" class="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-200 p-2">
-            <label v-for="template in activeTemplates" :key="template.id" class="flex cursor-pointer items-center gap-2 rounded px-2 py-1 hover:bg-slate-50">
+          <p class="mb-1.5 text-sm font-medium text-ink">Modelos</p>
+          <div v-if="activeTemplates.length" class="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-line p-2">
+            <label v-for="template in activeTemplates" :key="template.id" class="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-canvas">
               <input v-model="templatesSelecionados[template.id]" type="checkbox" class="h-4 w-4" />
               <span class="flex-1 text-sm">{{ template.nome }}</span>
-              <label class="flex items-center gap-1 text-xs text-slate-500"><input v-model="obrigatorios[template.id]" type="checkbox" checked /> Obrigatório</label>
+              <span class="flex items-center gap-1 text-xs text-ink-muted"><input type="checkbox" :checked="obrigatorios[template.id] !== false" @change="obrigatorios[template.id] = ($event.target as HTMLInputElement).checked" /> Obrigatório</span>
             </label>
           </div>
-          <p v-else class="muted text-sm">Nenhum template ativo disponível.</p>
+          <p v-else class="text-sm text-ink-muted">Nenhum modelo ativo disponível.</p>
         </div>
         <div class="flex justify-end gap-2 pt-2">
           <BaseButton variant="secondary" @click="modalDossie = false">Cancelar</BaseButton>

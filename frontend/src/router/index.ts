@@ -16,13 +16,13 @@ const routes: RouteRecordRaw[] = [
   { path: '/documentos/todos', component: () => import('../pages/documents/AllDocumentsPage.vue'), meta: { roles: ['validador', 'coordenador', 'admin'] } },
   { path: '/documentos/upload', component: () => import('../pages/documents/UploadPage.vue'), meta: { roles: ['usuario'] } },
   { path: '/documentos/:id', component: () => import('../pages/documents/DocumentDetailPage.vue') },
-  { path: '/validacao/fila', component: () => import('../pages/validation/QueuePage.vue'), meta: { roles: ['validador', 'coordenador', 'admin'] } },
-  { path: '/validacao/:id', component: () => import('../pages/validation/WorkspacePage.vue'), meta: { roles: ['validador', 'coordenador', 'admin'] } },
+  { path: '/validacao/fila', component: () => import('../pages/validation/QueuePage.vue'), meta: { revisao: true } },
+  { path: '/validacao/:id', component: () => import('../pages/validation/WorkspacePage.vue'), meta: { revisao: true } },
   { path: '/templates', component: () => import('../pages/templates/TemplatesPage.vue') },
   { path: '/templates/:id', component: () => import('../pages/templates/TemplateStudioPage.vue'), meta: { studio: true } },
   { path: '/templates/:id/regras', redirect: (to) => ({ path: `/templates/${String(to.params.id)}`, query: { step: 'regras' } }) },
   { path: '/templates/:id/versoes', component: () => import('../pages/templates/TemplateVersionsPage.vue') },
-  { path: '/relatorios', component: () => import('../pages/reports/ReportsPage.vue'), meta: { roles: ['coordenador', 'admin'] } },
+  { path: '/relatorios', component: () => import('../pages/reports/ReportsPage.vue') },
   { path: '/usuarios', component: () => import('../pages/users/UsersPage.vue'), meta: { roles: ['admin'] } },
   { path: '/membros', component: () => import('../pages/empresa/MembrosPage.vue') },
   { path: '/entidades', component: () => import('../pages/entidades/EntidadesPage.vue') },
@@ -44,9 +44,12 @@ router.beforeEach(async (to) => {
 
   if (to.meta.public) return true
   if (!auth.token) return { path: '/login', query: { redirect: to.fullPath } }
+  if (to.path === '/dashboard' && !auth.podeVerDashboard) return auth.destinoInicial
+  if (to.path === '/relatorios' && !auth.podeVerRelatorios) return auth.destinoInicial
+  if (to.meta.revisao && !auth.podeRevisar) return auth.destinoInicial
   const roles = to.meta.roles as string[] | undefined
-  if (roles && (!auth.perfil || !roles.includes(auth.perfil))) return '/dashboard'
-  if (to.path === '/membros' && !auth.temPermissaoEmpresa('members.view')) return '/dashboard'
+  if (roles && (!auth.perfil || !roles.includes(auth.perfil))) return auth.destinoInicial
+  if (to.path === '/membros' && !auth.temPermissaoEmpresa('members.view')) return auth.destinoInicial
   return true
 })
 export default router

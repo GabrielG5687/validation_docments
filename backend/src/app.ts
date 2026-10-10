@@ -5,6 +5,7 @@ import { globalRateLimiter } from './middlewares/rateLimiter'
 import { errorHandler } from './middlewares/errorHandler'
 import { authenticate } from './middlewares/auth'
 import { requireRole } from './middlewares/roles'
+import { requireTemplateManager } from './middlewares/templateManager'
 import { resolveEmpresaContext } from './middlewares/empresaContext'
 import authRoutes from './routes/auth'
 import usuariosRoutes from './routes/usuarios'
@@ -89,11 +90,12 @@ app.use('/api/empresas', ...withEmpresa, empresasRoutes)
 // Usuarios — requires authentication + admin role
 app.use('/api/usuarios', ...withEmpresa, requireRole('admin'), usuariosRoutes)
 
-// Templates — all authenticated users (GET); admin only (POST/PUT/DELETE, enforced in route)
+// Templates — leitura por qualquer autenticado (isolada por empresa);
+// escrita exige admin global ou proprietário da empresa (middleware na rota)
 app.use('/api/templates', ...withEmpresa, templatesRoutes)
 
-// Regras — requires authentication + admin role
-app.use('/api/regras', ...withEmpresa, requireRole('admin'), regrasRoutes)
+// Regras — escrita restrita a quem gerencia os templates da empresa ativa
+app.use('/api/regras', ...withEmpresa, requireTemplateManager, regrasRoutes)
 
 app.use('/api/documentos', ...withEmpresa, documentosRoutes)
 app.use('/api/verificar', verificarRoutes)

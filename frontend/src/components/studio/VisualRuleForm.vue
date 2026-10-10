@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, reactive, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import type { CampoTemplate, RegraValidacao, TipoRegra } from '../../types'
 import { FORMAT_PRESETS, formatCurrency, presetFromRegex } from '../../utils/formatPresets'
 import { describeRegra } from '../../utils/regraCopy'
+import { templateService } from '../../services/templateService'
 import BaseButton from '../ui/BaseButton.vue'
 
 const props = defineProps<{
@@ -11,13 +12,16 @@ const props = defineProps<{
   tipo: TipoRegra
 }>()
 const emit = defineEmits<{ save: [rule: Partial<RegraValidacao>]; cancel: [] }>()
+const gerando = ref(false)
+const erroFormato = ref('')
 
 const form = reactive({
   nome: '',
   campo: '',
   preset: 'cpf',
   regex: FORMAT_PRESETS[0].regex,
-  mostrarRegex: false,
+  formatoDescricao: '',
+  exemploGerado: '',
   min: 0,
   max: 1000,
   campoResultado: '',
@@ -34,9 +38,11 @@ watch(() => [props.tipo, props.initial], () => {
   form.campo = String(params.campo ?? props.campos[0]?.identificador ?? '')
   form.nome = props.initial?.nome || ''
   const preset = presetFromRegex(String(params.regex ?? ''))
-  form.preset = preset?.id || 'personalizado'
+  form.preset = preset?.id || (params.regex ? 'personalizado' : 'cpf')
   form.regex = String(params.regex ?? FORMAT_PRESETS[0].regex)
-  form.mostrarRegex = !preset
+  form.formatoDescricao = String(params.formatoDescricao ?? '')
+  form.exemploGerado = ''
+  erroFormato.value = ''
   form.min = Number(params.min ?? 0)
   form.max = Number(params.max ?? 1000)
   form.campoResultado = String(params.campo_resultado ?? '') || props.campos[0]?.identificador || ''
@@ -63,14 +69,37 @@ const preview = computed(() => {
 
 function onPreset(id: string) {
   form.preset = id
+  erroFormato.value = ''
+  form.exemploGerado = ''
   if (id === 'personalizado') {
-    form.mostrarRegex = true
+    form.regex = ''
     return
   }
   const preset = FORMAT_PRESETS.find((item) => item.id === id)
   if (preset) {
     form.regex = preset.regex
-    form.mostrarRegex = false
+    form.formatoDescricao = ''
+  }
+}
+
+async function gerarFormato() {
+  const descricao = form.formatoDescricao.trim()
+  if (descricao.length < 3) {
+    erroFormato.value = 'Descreva o formato que deve ser aceito.'
+    return
+  }
+  gerando.value = true
+  erroFormato.value = ''
+  try {
+    const gerado = await templateService.generateRegex(descricao)
+    form.regex = gerado.regex
+    form.exemploGerado = gerado.exemplo
+  } catch (error: unknown) {
+    const message = (error as { response?: { data?: { error?: string } } })?.response?.data?.error
+    erroFormato.value = message || 'Não foi possível gerar o formato.'
+    form.regex = ''
+  } finally {
+    gerando.value = false
   }
 }
 
@@ -87,12 +116,24 @@ function defaultNome() {
 
 function buildParametros(): Record<string, unknown> {
   if (props.tipo === 'campo_obrigatorio') return { campo: form.campo }
-  if (props.tipo === 'formato') return { campo: form.campo, regex: form.regex }
+  if (props.tipo === 'formato') {
+    return {
+      campo: form.campo,
+      regex: form.regex,
+      ...(form.preset === 'personalizado' && form.formatoDescricao.trim()
+        ? { formatoDescricao: form.formatoDescricao.trim() }
+        : {}),
+    }
+  }
   if (props.tipo === 'intervalo') return { campo: form.campo, min: form.min, max: form.max }
   return { expressao: expressaoFinal.value.trim(), campo_resultado: form.campoResultado, tolerancia: form.tolerancia }
 }
 
-function save() {
+async function save() {
+  if (props.tipo === 'formato' && form.preset === 'personalizado' && !form.regex) {
+    await gerarFormato()
+    if (!form.regex) return
+  }
   emit('save', {
     nome: form.nome || defaultNome(),
     tipo: props.tipo,
@@ -110,7 +151,7 @@ const intervaloLabel = computed(() => {
 </script>
 
 <template>
-  <form class="space-y-4" @submit.prevent="save">
+  <form class="space-y-4" @submit.prevent="save()">
     <label v-if="tipo !== 'calculo'" class="block text-sm font-medium text-slate-700">
       Campo
       <select v-model="form.campo" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
@@ -140,10 +181,24 @@ const intervaloLabel = computed(() => {
           Personalizado
         </button>
       </div>
-      <label v-if="form.mostrarRegex" class="block text-sm font-medium text-slate-700">
-        Expressão (avançado)
-        <input v-model="form.regex" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm">
-      </label>
+      <div v-if="form.preset === 'personalizado'" class="space-y-2">
+        <label class="block text-sm font-medium text-slate-700" for="formato-personalizado">
+          Qual formato deve ser aceito?
+          <textarea
+            id="formato-personalizado"
+            v-model="form.formatoDescricao"
+            rows="2"
+            placeholder="Ex.: placa Mercosul, três letras, um número, uma letra e dois números"
+            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            @input="form.regex = ''; form.exemploGerado = ''"
+          />
+        </label>
+        <BaseButton type="button" variant="secondary" :loading="gerando" @click="gerarFormato">Gerar formato com IA</BaseButton>
+        <p v-if="erroFormato" class="text-sm text-red-700">{{ erroFormato }}</p>
+        <p v-else-if="form.regex" class="text-sm text-emerald-800">
+          Formato gerado<span v-if="form.exemploGerado">. Exemplo aceito: {{ form.exemploGerado }}</span>.
+        </p>
+      </div>
     </div>
 
     <div v-if="tipo === 'intervalo'" class="grid grid-cols-2 gap-3">

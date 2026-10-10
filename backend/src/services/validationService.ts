@@ -1,4 +1,5 @@
 import { RegraValidacao } from '@prisma/client'
+import { normalizarData } from './extracao/normalizadores'
 
 export interface ResultadoInput {
   regraId: string
@@ -75,6 +76,37 @@ function evaluateExpression(expression: string, data: Record<string, string>): n
   return value
 }
 
+function prepararTexto(value: string): string {
+  return value
+    .replace(/[\u2215\u2044\uFF0F]/g, '/')
+    .replace(/[\u2010-\u2015\u2212]/g, '-')
+    .replace(/[\u00A0\u202F]/g, ' ')
+    .trim()
+}
+
+/** Corrige regex de data em que a IA gravou dd, mm ou aaaa como texto literal. */
+export function corrigirRegexData(fonte: string): string {
+  return fonte
+    .replace(/\bdd\b/g, '(0[1-9]|[12][0-9]|3[01])')
+    .replace(/\bmm\b/g, '(0[1-9]|1[0-2])')
+    .replace(/\b(aaaa|yyyy)\b/gi, '\\d{4}')
+}
+
+function candidatosDeFormato(value: string): string[] {
+  const base = prepararTexto(value)
+  const candidatos = [base]
+  const data = base.match(/(\d{1,2})\s*[\/.\-]\s*(\d{1,2})\s*[\/.\-]\s*(\d{4})/)
+  if (data) candidatos.push(`${data[1].padStart(2, '0')}/${data[2].padStart(2, '0')}/${data[3]}`)
+  return [...new Set(candidatos)]
+}
+
+function pareceData(fonte: string): boolean {
+  const texto = fonte.toLowerCase()
+  if (!texto.includes('/')) return false
+  if (/\bdd\b|\bmm\b|aaaa|yyyy/.test(texto)) return true
+  return /\\d\{2\}/.test(fonte) && /\\d\{4\}/.test(fonte)
+}
+
 export function aplicarRegra(regra: RegraValidacao, dados: Record<string, string>): ResultadoInput {
   const params = paramsOf(regra)
   if (regra.tipo === 'campo_obrigatorio') {
@@ -87,8 +119,16 @@ export function aplicarRegra(regra: RegraValidacao, dados: Record<string, string
     const value = dados[campo]
     if (typeof value !== 'string') return result(regra, false, value, `regex: ${String(params.regex ?? '')}`)
     try {
-      const regex = new RegExp(String(params.regex ?? ''))
-      return result(regra, regex.test(value), value, `regex: ${regex.source}`)
+      const fonte = corrigirRegexData(String(params.regex ?? ''))
+      const regex = new RegExp(fonte)
+      const candidatos = candidatosDeFormato(value)
+      const aceito = candidatos.find((item) => regex.test(item))
+      if (aceito) return result(regra, true, aceito, `regex: ${regex.source}`)
+      if (pareceData(fonte)) {
+        const data = normalizarData(candidatos[candidatos.length - 1])
+        if (data.ok) return result(regra, true, data.canonico, `data brasileira: ${data.canonico}`)
+      }
+      return result(regra, false, value, `regex: ${regex.source}`)
     } catch {
       return result(regra, false, value, 'expressão regular inválida')
     }

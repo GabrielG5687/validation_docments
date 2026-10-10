@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { sanitizeRegrasSugeridas } from '../utils/regraParams'
+import { validarRegexGerado } from '../utils/regexGerado'
 
 const MAX_CHARS = 12_000
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
@@ -81,6 +82,34 @@ async function groqJson<T>(system: string, user: string): Promise<T> {
   throw new Error(lastError)
 }
 
+const regexIaSchema = z.object({
+  regex: z.string().min(1),
+  exemplo: z.string().optional().default(''),
+})
+
+export async function gerarRegexComIa(descricao: string) {
+  const texto = descricao.trim()
+  if (texto.length < 3) throw new Error('Descreva o formato que deve ser aceito.')
+  const raw = await groqJson<unknown>(
+    `Você gera uma expressão regular JavaScript para validar um campo documental.
+Responda APENAS JSON: { "regex": "fonte sem barras", "exemplo": "um valor que a regex aceita" }
+Regras:
+- A regex valida o valor inteiro. Use ^ e $.
+- Não use lookbehind. Evite quantificadores aninhados.
+- Contexto brasileiro quando a descrição for de documento, data, placa ou telefone.
+- A fonte tem no máximo 160 caracteres.`,
+    `Formato desejado:\n${texto.slice(0, 240)}`,
+  )
+  const parsed = regexIaSchema.safeParse(raw)
+  if (!parsed.success) throw new Error('A IA não retornou uma expressão válida')
+  const regex = validarRegexGerado(parsed.data.regex)
+  const exemplo = parsed.data.exemplo.trim()
+  if (exemplo && !new RegExp(regex).test(exemplo)) {
+    throw new Error('A expressão gerada não confere com o exemplo. Tente descrever o formato de outro jeito.')
+  }
+  return { regex, exemplo, descricao: texto }
+}
+
 const templateIaSchema = z.object({
   nome: z.string().min(1),
   descricao: z.string().optional().default(''),
@@ -107,6 +136,9 @@ Responda APENAS um JSON com:
 Regras de parametros:
 - campo_obrigatorio: { "campo": "Nome do campo como aparece no documento" }
 - formato: { "campo": "...", "regex": "expressão regular" }
+- Data brasileira: use exatamente ^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\\d{4}$
+- Nunca escreva dd, mm ou aaaa como texto dentro da regex.
+- Campo de assinatura digital (orientador, responsável, signatário) deve ser campo_obrigatorio. O valor vem do certificado, não de uma linha do texto.
 - intervalo: { "campo": "...", "min": number, "max": number }
 - calculo: { "expressao": "A+B", "campo_resultado": "...", "tolerancia": 0 }
 Use nomes de campo iguais aos rótulos do documento. No máximo 12 regras. Prefira campo_obrigatorio e formato.`,

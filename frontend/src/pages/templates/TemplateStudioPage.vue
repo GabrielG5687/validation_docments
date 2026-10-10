@@ -48,7 +48,7 @@ const {
   selectedSecao,
   selectedCampo,
 } = studio
-const canEdit = computed(() => auth.perfil === 'admin')
+const canEdit = computed(() => auth.podeGerenciarTemplates)
 
 const step = ref<StudioStep>('campos')
 const pane = ref<'estrutura' | 'canvas' | 'propriedades'>('canvas')

@@ -1,8 +1,18 @@
-import { Router } from 'express'
-import { requireRole } from '../middlewares/roles'
-import { dashboard, relatorio, relatorioCSV } from '../controllers/relatoriosController'
+import { Router, Request, Response, NextFunction } from 'express'
+import { relatorio, relatorioCSV } from '../controllers/relatoriosController'
 
 const router = Router()
-router.get('/', requireRole('coordenador', 'admin'), relatorio)
-router.get('/exportar', requireRole('coordenador', 'admin'), relatorioCSV)
+
+function requireRelatorio(req: Request, res: Response, next: NextFunction): void {
+  const perfil = req.user?.perfil
+  const papel = req.empresa?.papel
+  if (perfil === 'coordenador' || perfil === 'admin' || papel === 'OWNER' || papel === 'ADMIN') {
+    next()
+    return
+  }
+  res.status(403).json({ error: 'Relatórios disponíveis para proprietários e admins da organização.' })
+}
+
+router.get('/', requireRelatorio, relatorio)
+router.get('/exportar', requireRelatorio, relatorioCSV)
 export default router
