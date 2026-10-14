@@ -25,6 +25,10 @@ const withEmpresa = [authenticate, resolveEmpresaContext] as const
 
 const app: Application = express()
 
+// Atrás de reverse proxy (Nginx/Coolify): confiar no primeiro salto para que
+// req.ip e os rate limiters vejam o IP real do cliente, e não 127.0.0.1.
+app.set('trust proxy', 1)
+
 // ─── Security headers ──────────────────────────────────────────────────────
 app.use(
   helmet({
