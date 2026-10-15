@@ -14,6 +14,7 @@ import ApprovalSeal from '../../components/document/ApprovalSeal.vue'
 import ValidadeSeal from '../../components/document/ValidadeSeal.vue'
 import GovBrSignatureCard from '../../components/document/GovBrSignatureCard.vue'
 import EvidenciasExtraidas from '../../components/document/EvidenciasExtraidas.vue'
+import ExtractionErrorNotice from '../../components/document/ExtractionErrorNotice.vue'
 import { documentService } from '../../services/documentService'
 import { useAuthStore } from '../../stores/auth'
 import type { AnaliseIa } from '../../types'
@@ -39,10 +40,12 @@ const analiseIa = computed(() => {
 
 const assinaturaGov = computed(() => assinaturaGovFromDados(store.documentoAtual?.dadosExtraidos))
 
+const erroExtracao = computed(() => store.documentoAtual?.dadosExtraidos?.erroExtracao)
+
 const camposExtraidos = computed(() => {
   const dados = store.documentoAtual?.dadosExtraidos || {}
   return Object.fromEntries(
-    Object.entries(dados).filter(([key, value]) => !key.startsWith('_') && (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'))
+    Object.entries(dados).filter(([key, value]) => key !== 'erroExtracao' && !key.startsWith('_') && (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'))
   )
 })
 const approved = computed(() => analiseAprovada(store.documentoAtual))
@@ -156,6 +159,7 @@ async function revalidateSignature() {
           </section>
           <section class="card">
             <h2 class="mb-4 text-lg font-bold">Dados extraídos</h2>
+            <ExtractionErrorNotice v-if="erroExtracao" :error="erroExtracao" />
             <dl class="grid gap-3 sm:grid-cols-2">
               <template v-for="(value, key) in camposExtraidos" :key="key">
                 <dt class="text-sm text-slate-500">{{ key }}</dt>

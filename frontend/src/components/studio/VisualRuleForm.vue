@@ -14,6 +14,7 @@ const props = defineProps<{
 const emit = defineEmits<{ save: [rule: Partial<RegraValidacao>]; cancel: [] }>()
 const gerando = ref(false)
 const erroFormato = ref('')
+const sugerindo = ref(false)
 
 const form = reactive({
   nome: '',
@@ -59,6 +60,55 @@ watch(() => [props.tipo, props.initial], () => {
     form.direita = props.campos[1]?.identificador ?? props.campos[0]?.identificador ?? ''
   }
 }, { immediate: true })
+
+// Sugerir automaticamente ao mudar o campo (para formato e intervalo)
+watch(() => form.campo, async (novoCampo) => {
+  if (!novoCampo || props.initial) return
+  if (props.tipo === 'formato' && form.preset === 'personalizado') {
+    await sugerirFormatoParaCampo(novoCampo)
+  } else if (props.tipo === 'intervalo') {
+    await sugerirIntervaloParaCampo(novoCampo)
+  }
+})
+
+async function sugerirFormatoParaCampo(campoId: string) {
+  const campo = props.campos.find(c => c.identificador === campoId)
+  if (!campo) return
+  sugerindo.value = true
+  try {
+    const descricao = `${campo.nome} (${campo.tipo})`
+    const gerado = await templateService.generateRegex(descricao)
+    form.regex = gerado.regex
+    form.exemploGerado = gerado.exemplo
+    form.formatoDescricao = descricao
+  } catch {
+    // Silencioso - usuário pode clicar no botão manual
+  } finally {
+    sugerindo.value = false
+  }
+}
+
+async function sugerirIntervaloParaCampo(campoId: string) {
+  const campo = props.campos.find(c => c.identificador === campoId)
+  if (!campo) return
+  sugerindo.value = true
+  try {
+    const descricao = `Valores típicos para ${campo.nome} (${campo.tipo})`
+    const gerado = await templateService.generateRegex(descricao)
+    // Extrair números da regex como sugestão de min/max
+    const numeros = gerado.regex.match(/\d+/g)?.map(Number) || []
+    if (numeros.length >= 2) {
+      form.min = Math.min(...numeros)
+      form.max = Math.max(...numeros)
+    } else if (numeros.length === 1) {
+      form.max = numeros[0] * 10
+    }
+  } catch {
+    // Silencioso
+  } finally {
+    sugerindo.value = false
+  }
+}
 
 const expressaoFinal = computed(() => form.avancado ? form.expressao : `${form.esquerda} ${form.operador} ${form.direita}`)
 
@@ -154,9 +204,13 @@ const intervaloLabel = computed(() => {
   <form class="space-y-4" @submit.prevent="save()">
     <label v-if="tipo !== 'calculo'" class="block text-sm font-medium text-slate-700">
       Campo
-      <select v-model="form.campo" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
-        <option v-for="campo in campos" :key="campo.id" :value="campo.identificador">{{ campo.nome }}</option>
-      </select>
+      <div class="flex items-center gap-2 mt-1">
+        <select v-model="form.campo" class="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+          <option v-for="campo in campos" :key="campo.id" :value="campo.identificador">{{ campo.nome }}</option>
+        </select>
+        <span v-if="sugerindo" class="text-xs text-primary animate-pulse">🤖 Sugerindo…</span>
+        <span v-else-if="form.campo && (tipo === 'formato' || tipo === 'intervalo')" class="text-xs text-emerald-700">✨ Preenchido automaticamente</span>
+      </div>
     </label>
 
     <div v-if="tipo === 'formato'" class="space-y-3">

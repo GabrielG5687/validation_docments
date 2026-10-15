@@ -6,11 +6,13 @@ import {
   listPendentes, iniciarRevisao, finalizarRevisao, cancelarRevisao,
   validarAssinaturaDocumento,
 } from '../controllers/documentosController'
+import { sugerirTemplate } from '../controllers/iaController'
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } })
 const router = Router()
 
 router.post('/upload', requireRole('usuario', 'admin'), upload.single('arquivo'), uploadDocumento)
+router.post('/sugerir-template', requireRole('usuario', 'validador', 'coordenador', 'admin'), upload.single('arquivo'), sugerirTemplate)
 router.get('/pendentes', requireRevisor, listPendentes)
 router.get('/', listDocumentos)
 router.get('/:id', detailDocumento)

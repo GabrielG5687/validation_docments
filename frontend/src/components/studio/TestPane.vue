@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref } from 'vue'
 import { documentService } from '../../services/documentService'
+import { templateService } from '../../services/templateService'
 import { analiseAprovada, analisePendente, analiseReprovada } from '../../utils/analiseStatus'
-import type { AnaliseIa, CampoTemplate, Documento } from '../../types'
+import type { AnaliseIa, CampoTemplate, Documento, RegraValidacao } from '../../types'
 import FileDropzone from '../upload/FileDropzone.vue'
 import UploadProgress from '../upload/UploadProgress.vue'
 import BaseButton from '../ui/BaseButton.vue'
@@ -24,6 +25,7 @@ const error = ref('')
 const progress = ref(0)
 const sending = ref(false)
 const analyzing = ref(false)
+const gerandoTestes = ref(false)
 const result = ref<Documento>()
 let timer: number | undefined
 
@@ -90,6 +92,69 @@ async function send() {
     analyzing.value = false
   }
 }
+
+async function gerarCasosDeTeste() {
+  // Obter regras do template para gerar casos inteligentes
+  try {
+    gerandoTestes.value = true
+    error.value = ''
+    // Como não temos as regras aqui, vamos usar o endpoint de teste do template
+    // A IA no backend vai gerar casos de teste baseados nas regras
+    // Por enquanto, geramos localmente baseado nos campos
+    const casos = gerarCasosLocais()
+    if (casos.length > 0) {
+      // Usar o primeiro caso válido para preencher o formulário de teste
+      // Como não temos formulário manual, apenas avisamos
+      error.value = `${casos.length} casos de teste gerados. Use a API /testar com estes valores.`
+    }
+  } catch (e: any) {
+    error.value = e.response?.data?.error || 'Falha ao gerar casos de teste.'
+  } finally {
+    gerandoTestes.value = false
+  }
+}
+
+function gerarCasosLocais(): Array<Record<string, string>> {
+  const casos: Array<Record<string, string>> = []
+  
+  // Caso 1: Todos campos válidos (baseado em presets conhecidos)
+  const casoValido: Record<string, string> = {}
+  const casoInvalido: Record<string, string> = {}
+  const casoLimite: Record<string, string> = {}
+  
+  for (const campo of props.campos) {
+    switch (campo.tipo) {
+      case 'documento':
+        casoValido[campo.identificador] = '123.456.789-09'
+        casoInvalido[campo.identificador] = '123.456.789-00'
+        break
+      case 'data':
+        casoValido[campo.identificador] = '15/01/2024'
+        casoInvalido[campo.identificador] = '32/13/2024'
+        break
+      case 'numero':
+        casoValido[campo.identificador] = '100'
+        casoInvalido[campo.identificador] = '-5'
+        casoLimite[campo.identificador] = '0'
+        break
+      case 'moeda':
+        casoValido[campo.identificador] = '1.500,00'
+        casoInvalido[campo.identificador] = 'abc'
+        break
+      case 'texto':
+      case 'texto_longo':
+        casoValido[campo.identificador] = 'Valor de teste válido'
+        casoInvalido[campo.identificador] = ''
+        break
+    }
+  }
+  
+  if (Object.keys(casoValido).length) casos.push(casoValido)
+  if (Object.keys(casoInvalido).length) casos.push(casoInvalido)
+  if (Object.keys(casoLimite).length) casos.push(casoLimite)
+  
+  return casos
+}
 </script>
 
 <template>
@@ -104,6 +169,7 @@ async function send() {
       <p v-if="file" class="text-sm text-green-700">Selecionado: {{ file.name }}</p>
       <UploadProgress v-if="sending" :progress="progress" />
       <BaseButton :loading="sending || analyzing" :disabled="!canSend" @click="send">Enviar e analisar</BaseButton>
+      <BaseButton v-if="props.campos.length" variant="secondary" :loading="gerandoTestes" :disabled="sending || analyzing || gerandoTestes" @click="gerarCasosDeTeste">Gerar casos de teste</BaseButton>
       <div v-if="extractedFields.length" class="space-y-2 border-t border-slate-100 pt-4">
         <p class="text-sm font-semibold text-slate-800">Campos extraídos</p>
         <div v-for="item in extractedFields" :key="item.nome" class="rounded-lg bg-slate-50 px-3 py-2 text-sm">

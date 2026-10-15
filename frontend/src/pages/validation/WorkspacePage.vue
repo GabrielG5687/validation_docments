@@ -9,6 +9,7 @@ import PdfViewer from '../../components/document/PdfViewer.vue'
 import ValidationResults from '../../components/document/ValidationResults.vue'
 import GovBrSignatureCard from '../../components/document/GovBrSignatureCard.vue'
 import EvidenciasExtraidas from '../../components/document/EvidenciasExtraidas.vue'
+import ExtractionErrorNotice from '../../components/document/ExtractionErrorNotice.vue'
 import { assinaturaGovFromDados } from '../../utils/assinaturaGov'
 
 const route = useRoute()
@@ -21,10 +22,11 @@ const loading = ref(true)
 let finalized = false
 
 const assinaturaGov = computed(() => assinaturaGovFromDados(document.value?.dadosExtraidos))
+const erroExtracao = computed(() => document.value?.dadosExtraidos?.erroExtracao)
 const camposExtraidos = computed(() => {
   const dados = document.value?.dadosExtraidos || {}
   return Object.fromEntries(
-    Object.entries(dados).filter(([key, value]) => !key.startsWith('_') && (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'))
+    Object.entries(dados).filter(([key, value]) => key !== 'erroExtracao' && !key.startsWith('_') && (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'))
   )
 })
 
@@ -72,6 +74,7 @@ async function finish(result: 'aprovado' | 'reprovado') {
         <EvidenciasExtraidas :dados="document.dadosExtraidos" />
         <section class="card">
           <h2 class="mb-3 font-bold">Dados extraídos</h2>
+          <ExtractionErrorNotice v-if="erroExtracao" :error="erroExtracao" />
           <dl class="grid grid-cols-2 gap-2 text-sm">
             <template v-for="(value, key) in camposExtraidos" :key="key">
               <dt class="text-slate-500">{{ key }}</dt>

@@ -6,6 +6,7 @@ export interface ResultadoInput {
   status: 'aprovado' | 'reprovado'
   valorEncontrado?: string
   criterio: string
+  explicacaoIa?: string
 }
 
 type Params = Record<string, unknown>

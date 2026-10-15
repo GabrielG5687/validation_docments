@@ -602,6 +602,7 @@ export async function testarTemplate(
           tipo: regra.tipo,
           parametros: regra.parametros,
         })),
+        descricaoTemplate: template.descricao || undefined,
       })
       extraidos = extraido.valores
       resumo = extraido.resumo

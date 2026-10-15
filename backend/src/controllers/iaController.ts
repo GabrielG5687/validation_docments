@@ -8,6 +8,7 @@ import {
   gerarRegexComIa as gerarRegexComGroq,
   gerarTemplateComIa as gerarComGroq,
   isGroqConfigured,
+  sugerirTemplateParaDocumento,
 } from '../services/groqService'
 import { pdfFromRequest } from '../utils/pdfFile'
 import { buildEstruturaFromRegras } from '../utils/estrutura'
@@ -54,13 +55,14 @@ export async function gerarTemplateComIa(
     }
 
     const nome = typeof req.body?.nome === 'string' ? req.body.nome : undefined
+    const descricao = typeof req.body?.descricao === 'string' ? req.body.descricao : undefined
     const texto = await extrairTexto(pdf.file.buffer)
     if (!texto.trim()) {
       res.status(422).json({ error: 'Não foi possível extrair texto deste PDF' })
       return
     }
 
-    const gerado = await gerarComGroq(texto, nome)
+    const gerado = await gerarComGroq(texto, nome, descricao)
     const empresaId = req.empresa.id
 
     const template = await prisma.$transaction(async (tx) => {
@@ -151,10 +153,55 @@ export async function analisarTemplateComIa(
         parametros: regra.parametros,
         obrigatoria: regra.obrigatoria,
       })),
-      textoDocumento
+      textoDocumento,
+      template.descricao || undefined
     )
 
     res.status(200).json(analise)
+  } catch (err) {
+    handleIaError(err, next, res)
+  }
+}
+
+/**
+ * POST /api/documentos/sugerir-template
+ * Upload wizard: recebe PDF e sugere template existente ou criação de novo.
+ * Público para usuários autenticados (qualquer perfil).
+ */
+export async function sugerirTemplate(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    if (!groqOrFail(res)) return
+    const pdf = pdfFromRequest(req.file)
+    if (!pdf.ok) {
+      res.status(pdf.status).json({ error: pdf.error })
+      return
+    }
+
+    const texto = await extrairTexto(pdf.file.buffer)
+    if (!texto.trim()) {
+      res.status(422).json({ error: 'Não foi possível extrair texto deste PDF' })
+      return
+    }
+
+    // Buscar templates ativos da empresa
+    const templates = await prisma.template.findMany({
+      where: {
+        empresaId: req.empresa?.id,
+        status: 'ativo',
+      },
+      select: { id: true, nome: true, categoria: true, descricao: true },
+    })
+
+    const sugestao = await sugerirTemplateParaDocumento(texto, templates as Array<{ id: string; nome: string; categoria?: string; descricao?: string }>)
+
+    res.status(200).json({
+      sugestao,
+      templates: templates.map(t => ({ id: t.id, nome: t.nome, categoria: t.categoria })),
+    })
   } catch (err) {
     handleIaError(err, next, res)
   }

@@ -9,5 +9,5 @@ export const STATUS_CONFIG: Record<StatusDocumento, { label: string; colorClass:
   aprovado: { label: 'Aprovado', colorClass: 'text-emerald-700', bgClass: 'bg-emerald-50', icon: CheckCircle },
   reprovado: { label: 'Reprovado', colorClass: 'text-red-700', bgClass: 'bg-red-50', icon: XCircle },
   reprovado_automatico: { label: 'Reprovado automaticamente', colorClass: 'text-red-700', bgClass: 'bg-red-50', icon: XCircle },
-  erro_extracao: { label: 'Erro na extração', colorClass: 'text-orange-700', bgClass: 'bg-orange-50', icon: AlertCircle },
+  erro_extracao: { label: 'Falha no processamento', colorClass: 'text-orange-700', bgClass: 'bg-orange-50', icon: AlertCircle },
 }

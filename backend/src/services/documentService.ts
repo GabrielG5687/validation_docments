@@ -10,6 +10,7 @@ import { falhaSoInconclusiva, resolverCandidatos } from './extracao/resolverCand
 import { parseEstrutura, flattenCampos } from '../utils/estrutura'
 import { validacaoAssinaturaIndisponivel, validarAssinaturasPdf } from './assinatura/signatureValidationService'
 import { calcularValidadeDocumento } from './validadeService'
+import { isGroqConfigured, explicarFalhaRegra } from './groqService'
 
 async function changeStatus(documentoId: string, status: StatusDocumento, usuarioId?: string) {
   const current = await prisma.documento.findUnique({ where: { id: documentoId }, select: { status: true } })
@@ -93,6 +94,8 @@ export async function processarDocumento(documentoId: string): Promise<void> {
         tipo: regra.tipo,
         parametros: regra.parametros,
       })),
+      documentoId,
+      descricaoTemplate: documento.template.descricao || undefined,
     })
     const resolvido = resolverCandidatos({
       chaves: [...campos],
@@ -102,10 +105,15 @@ export async function processarDocumento(documentoId: string): Promise<void> {
       diagnostico,
       iaStatus: extraido.iaStatus,
     })
-    const dados: Record<string, unknown> = { ...resolvido.confirmados, _extracao: resolvido.extracao }
+    const dados: Record<string, unknown> = { ...resolvido.confirmados, _extracao: { ...resolvido.extracao, iaStatus: extraido.iaStatus } }
     let observacaoIa = extraido.resumo || ''
     if (extraido.resumo || extraido.alertas?.length) {
       dados._analiseIa = { resumo: extraido.resumo || '', alertas: extraido.alertas || [] }
+    }
+    // Flag para priorizar revisão humana se IA falhou
+    if (extraido.iaStatus !== 'sucesso' && extraido.iaStatus !== 'nao_aplicada') {
+      dados._iaFalhou = true
+      dados._iaErro = extraido.iaStatus
     }
     try {
       dados._assinaturaGov = await withTimeout(validarAssinaturasPdf(buffer), 25_000)
@@ -140,16 +148,57 @@ export async function processarDocumento(documentoId: string): Promise<void> {
 
     await changeStatus(documentoId, 'aguardando_validacao')
     const resultados = documento.template.regras.map((regra) => aplicarRegra(regra, camposParaRegras))
+
+    // Gerar explicações em linguagem natural para regras reprovadas (se IA configurada)
+    if (isGroqConfigured()) {
+      for (let i = 0; i < resultados.length; i++) {
+        const resultado = resultados[i]
+        if (resultado.status === 'reprovado') {
+          const regra = documento.template.regras[i]
+          const explicacao = await explicarFalhaRegra(
+            regra.nome,
+            regra.tipo,
+            resultado.criterio,
+            resultado.valorEncontrado ?? ''
+          )
+          if (explicacao) {
+            resultado.explicacaoIa = explicacao
+          }
+        }
+      }
+    }
+
     const falhaObrigatoria = documento.template.regras.some((regra, i) => regra.obrigatoria && resultados[i].status === 'reprovado')
     const soInconclusivo = falhaSoInconclusiva(documento.template.regras, resultados, resolvido.inconclusivos)
     const resultado = falhaObrigatoria && !soInconclusivo ? 'reprovado' : 'aprovado'
     const novoStatus = falhaObrigatoria && !soInconclusivo ? 'reprovado_automatico' : 'aguardando_revisao'
     const validatorId = await systemValidatorId()
-    const observacoes = [
-      falhaObrigatoria && !soInconclusivo ? 'Uma ou mais regras obrigatórias não foram atendidas.' : null,
-      soInconclusivo ? 'Há campos sem evidência verificável ou em conflito. A aprovação automática foi retida.' : null,
-      observacaoIa || null,
-    ].filter(Boolean).join(' ')
+
+    // Construir descrição detalhada dos pontos de falha
+    const regrasReprovadas = resultados
+      .map((r, i) => ({ resultado: r, regra: documento.template.regras[i] }))
+      .filter(({ resultado }) => resultado.status === 'reprovado')
+
+    let observacoes = ''
+    if (falhaObrigatoria && !soInconclusivo) {
+      const linhas = ['Documento reprovado automaticamente. Pontos não conformes:']
+      for (const { resultado, regra } of regrasReprovadas) {
+        const detalhe = resultado.explicacaoIa || `${regra.nome}: valor "${resultado.valorEncontrado ?? 'ausente'}" não atende ao critério (${resultado.criterio})`
+        linhas.push(`• ${detalhe}`)
+      }
+      observacoes = linhas.join('\n')
+    } else if (soInconclusivo) {
+      observacoes = 'Há campos sem evidência verificável ou em conflito. A aprovação automática foi retida.'
+      if (regrasReprovadas.length) {
+        observacoes += '\n\nRegras com falha:'
+        for (const { resultado, regra } of regrasReprovadas) {
+          const detalhe = resultado.explicacaoIa || `${regra.nome}: ${resultado.criterio}`
+          observacoes += `\n• ${detalhe}`
+        }
+      }
+    } else if (observacaoIa) {
+      observacoes = observacaoIa
+    }
 
     await prisma.$transaction(async (tx) => {
       await tx.documento.update({
@@ -171,12 +220,13 @@ export async function processarDocumento(documentoId: string): Promise<void> {
           resultado,
           observacoes: observacoes || null,
           resultadosRegra: {
-            create: resultados.map((item) => ({
-              regraId: item.regraId,
-              status: item.status,
-              valorEncontrado: item.valorEncontrado,
-              criterio: item.criterio,
-            })),
+          create: resultados.map((item) => ({
+            regraId: item.regraId,
+            status: item.status,
+            valorEncontrado: item.valorEncontrado,
+            criterio: item.criterio,
+            explicacaoIa: item.explicacaoIa,
+          })),
           },
         },
       })

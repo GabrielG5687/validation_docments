@@ -28,6 +28,7 @@ const name = ref('')
 const description = ref('')
 const categoria = ref('')
 const aiName = ref('')
+const aiDescription = ref('')
 const aiCategoria = ref('')
 const aiFile = ref<File>()
 const saving = ref(false)
@@ -91,9 +92,10 @@ async function generateWithAi() {
   generating.value = true
   aiError.value = ''
   try {
-    const template = await templateService.generateWithAi(aiFile.value, aiName.value)
+    const template = await templateService.generateWithAi(aiFile.value, aiName.value, aiDescription.value)
     openAi.value = false
     aiName.value = ''
+    aiDescription.value = ''
     aiCategoria.value = ''
     aiFile.value = undefined
     notifications.push({ type: 'success', message: 'Modelo gerado. Revise campos e regras antes de publicar.' })
@@ -194,6 +196,10 @@ watch(() => route.query.q, (q) => {
     <BaseModal :open="openAi" title="Gerar modelo com IA" description="Descreva o documento que deseja gerar e envie um PDF de exemplo." @close="openAi = false">
       <form class="space-y-3" @submit.prevent="generateWithAi">
         <BaseInput id="ai-template-name" v-model="aiName" label="Nome (opcional)" placeholder="Ex.: Contrato de prestação de serviços" />
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-ink" for="ai-template-description">Descrição e requisitos do modelo (opcional)</label>
+          <textarea id="ai-template-description" v-model="aiDescription" rows="3" class="field" placeholder="Descreva a finalidade do documento e os requisitos que devem ser verificados." />
+        </div>
         <div>
           <label class="mb-1.5 block text-sm font-medium text-ink" for="ai-categoria">Categoria</label>
           <select id="ai-categoria" v-model="aiCategoria" class="field">

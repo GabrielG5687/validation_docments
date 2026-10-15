@@ -16,10 +16,11 @@ export const templateService = {
     const { data } = await api.post<Template>('/api/templates', payload)
     return data
   },
-  async generateWithAi(file: File, nome?: string) {
+  async generateWithAi(file: File, nome?: string, descricao?: string) {
     const form = new FormData()
     form.append('arquivo', file)
     if (nome) form.append('nome', nome)
+    if (descricao?.trim()) form.append('descricao', descricao.trim())
     const { data } = await api.post<Template>('/api/templates/gerar-com-ia', form, iaTimeout)
     return data
   },

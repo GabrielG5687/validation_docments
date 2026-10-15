@@ -1,7 +1,10 @@
 import { extrairCampos } from './pdfService'
 import { recortarTextoRelevante, type PaginaTexto } from './extracao/evidenciaService'
-import { extrairEAnalisarDocumento, isGroqConfigured } from './groqService'
+import { extrairEAnalisarDocumento, isGroqConfigured, GroqConfigError } from './groqService'
 import type { IaExtracaoStatus } from './extracao/resolverCandidatos'
+
+const IA_MAX_RETRIES = 2
+const IA_TIMEOUT_MS = 45_000
 
 function withTimeout<T>(promise: Promise<T>, milliseconds: number): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -13,6 +16,44 @@ function withTimeout<T>(promise: Promise<T>, milliseconds: number): Promise<T> {
   })
 }
 
+async function chamarIaComRetry<T>(
+  fn: () => Promise<T>,
+  contexto: { documentoId?: string; operacao: string }
+): Promise<{ sucesso: boolean; dados?: T; erro?: string; iaStatus: IaExtracaoStatus }> {
+  if (!isGroqConfigured()) {
+    return { sucesso: false, erro: 'GROQ_API_KEY não configurada', iaStatus: 'nao_configurada' }
+  }
+
+  let lastError: Error | undefined
+  for (let attempt = 1; attempt <= IA_MAX_RETRIES; attempt++) {
+    try {
+      const dados = await withTimeout(fn(), IA_TIMEOUT_MS)
+      if (attempt > 1) {
+        console.info('[IA] Sucesso na tentativa', { attempt, ...contexto })
+      }
+      return { sucesso: true, dados, iaStatus: 'sucesso' }
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error))
+      const message = lastError.message
+      console.warn('[IA] Tentativa falhou', { attempt, max: IA_MAX_RETRIES, message, ...contexto })
+      
+      if (attempt === IA_MAX_RETRIES) {
+        let iaStatus: IaExtracaoStatus = 'indisponivel'
+        if (/tempo limite|timeout|aborted/i.test(message)) iaStatus = 'timeout'
+        else if (error instanceof GroqConfigError) iaStatus = 'nao_configurada'
+        
+        return { 
+          sucesso: false, 
+          erro: message, 
+          iaStatus 
+        }
+      }
+      await new Promise(r => setTimeout(r, 1000 * attempt))
+    }
+  }
+  return { sucesso: false, erro: lastError?.message, iaStatus: 'indisponivel' }
+}
+
 export function onlyFilled(record: Record<string, string | undefined | null>): Record<string, string> {
   const out: Record<string, string> = {}
   for (const [key, value] of Object.entries(record)) {
@@ -22,17 +63,15 @@ export function onlyFilled(record: Record<string, string | undefined | null>): R
   return out
 }
 
-/**
- * Extracts field values the same way document processing does:
- * regex aliases first, then Groq fills what is still missing.
- */
 export async function extrairValoresDeDocumento(opts: {
   texto: string
   chaves: string[]
   rotulos?: Record<string, string>
   regras: Array<{ nome: string; tipo: string; parametros: unknown }>
-}): Promise<{ valores: Record<string, string>; resumo?: string; alertas?: string[] }> {
-  const { texto, chaves, rotulos = {}, regras } = opts
+  documentoId?: string
+  descricaoTemplate?: string
+}): Promise<{ valores: Record<string, string>; resumo?: string; alertas?: string[]; iaStatus: IaExtracaoStatus }> {
+  const { texto, chaves, rotulos = {}, regras, documentoId, descricaoTemplate } = opts
   const uniqueChaves = [...new Set(chaves.filter(Boolean))]
   const aliases = [...new Set(uniqueChaves.flatMap((chave) => [chave, rotulos[chave]].filter(Boolean)))]
   const bruto = extrairCampos(texto, aliases)
@@ -45,17 +84,19 @@ export async function extrairValoresDeDocumento(opts: {
 
   let resumo: string | undefined
   let alertas: string[] | undefined
+  let iaStatus: IaExtracaoStatus = 'nao_aplicada'
 
-  if (isGroqConfigured() && uniqueChaves.length > 0 && texto.trim()) {
-    try {
-      const analise = await withTimeout(
-        extrairEAnalisarDocumento(texto, uniqueChaves, regras, rotulos),
-        45_000
-      )
+  if (uniqueChaves.length > 0 && texto.trim()) {
+    const resultado = await chamarIaComRetry(
+      () => extrairEAnalisarDocumento(texto, uniqueChaves, regras, rotulos, descricaoTemplate),
+      { documentoId, operacao: 'extrairValoresDeDocumento' }
+    )
+    iaStatus = resultado.iaStatus
+    if (resultado.sucesso && resultado.dados) {
+      const analise = resultado.dados
       for (const [campo, valor] of Object.entries(analise.campos)) {
         if (!valores[campo] && valor) valores[campo] = valor
       }
-      // Groq may return the human label as key — map back to identificador
       for (const chave of uniqueChaves) {
         const rotulo = rotulos[chave]
         if (!valores[chave] && rotulo && analise.campos[rotulo]) {
@@ -64,12 +105,12 @@ export async function extrairValoresDeDocumento(opts: {
       }
       resumo = analise.resumo || undefined
       alertas = analise.alertas.length ? analise.alertas : undefined
-    } catch (error) {
-      console.warn('[Extracao] IA ignorada', error instanceof Error ? error.message : error)
+    } else if (!resultado.sucesso) {
+      console.warn('[Extracao] IA falhou após retentativas', { documentoId, erro: resultado.erro, iaStatus })
     }
   }
 
-  return { valores, resumo, alertas }
+  return { valores, resumo, alertas, iaStatus }
 }
 
 export async function extrairCamadas(opts: {
@@ -77,6 +118,8 @@ export async function extrairCamadas(opts: {
   chaves: string[]
   rotulos?: Record<string, string>
   regras: Array<{ nome: string; tipo: string; parametros: unknown }>
+  documentoId?: string
+  descricaoTemplate?: string
 }): Promise<{
   regex: Record<string, string>
   ia: Record<string, string>
@@ -84,7 +127,7 @@ export async function extrairCamadas(opts: {
   alertas?: string[]
   iaStatus: IaExtracaoStatus
 }> {
-  const { paginas, chaves, rotulos = {}, regras } = opts
+  const { paginas, chaves, rotulos = {}, regras, documentoId, descricaoTemplate } = opts
   const texto = paginas.map((pagina) => pagina.texto).join('\n')
   const uniqueChaves = [...new Set(chaves.filter(Boolean))]
   const aliases = [...new Set(uniqueChaves.flatMap((chave) => [chave, rotulos[chave]].filter(Boolean)))]
@@ -95,14 +138,21 @@ export async function extrairCamadas(opts: {
     if (found?.trim()) regex[chave] = found.trim()
   }
 
-  if (!isGroqConfigured() || !uniqueChaves.length || !texto.trim()) {
-    return { regex, ia: {}, iaStatus: isGroqConfigured() ? 'nao_aplicada' : 'nao_configurada' }
+  if (!uniqueChaves.length || !texto.trim()) {
+    return { regex, ia: {}, iaStatus: 'nao_aplicada' }
   }
 
-  try {
-    const recorte = recortarTextoRelevante(paginas, [...aliases, ...Object.values(rotulos)])
-    const analise = await withTimeout(extrairEAnalisarDocumento(recorte, uniqueChaves, regras, rotulos), 45_000)
-    const ia: Record<string, string> = {}
+  const recorte = recortarTextoRelevante(paginas, [...aliases, ...Object.values(rotulos)])
+  const resultado = await chamarIaComRetry(
+    () => extrairEAnalisarDocumento(recorte, uniqueChaves, regras, rotulos, descricaoTemplate),
+    { documentoId, operacao: 'extrairCamadas' }
+  )
+
+  const iaStatus = resultado.iaStatus
+  const ia: Record<string, string> = {}
+
+  if (resultado.sucesso && resultado.dados) {
+    const analise = resultado.dados
     for (const chave of uniqueChaves) {
       const direto = analise.campos[chave]
       const peloRotulo = rotulos[chave] ? analise.campos[rotulos[chave]] : undefined
@@ -114,12 +164,10 @@ export async function extrairCamadas(opts: {
       ia,
       resumo: analise.resumo || undefined,
       alertas: analise.alertas.length ? analise.alertas : undefined,
-      iaStatus: 'sucesso',
+      iaStatus,
     }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : ''
-    console.warn('[Extracao] IA ignorada', message)
-    const iaStatus: IaExtracaoStatus = /tempo limite|timeout|aborted/i.test(message) ? 'timeout' : 'indisponivel'
-    return { regex, ia: {}, iaStatus }
   }
+
+  console.warn('[Extracao] IA falhou após retentativas', { documentoId, erro: resultado.erro, iaStatus })
+  return { regex, ia: {}, iaStatus }
 }

@@ -116,10 +116,10 @@ const templateIaSchema = z.object({
   regras: z.array(z.unknown()).min(1),
 })
 
-export async function gerarTemplateComIa(texto: string, nomeSugerido?: string) {
+export async function gerarTemplateComIa(texto: string, nomeSugerido?: string, descricaoOrientadora?: string) {
   const raw = await groqJson<unknown>(
     `Você é um especialista em validação documental.
-Gere um template de regras a partir do texto de um PDF de exemplo.
+Gere um template de regras a partir do texto de um PDF de exemplo e da descrição orientadora, se fornecida.
 Responda APENAS um JSON com:
 {
   "nome": "string",
@@ -141,8 +141,15 @@ Regras de parametros:
 - Campo de assinatura digital (orientador, responsável, signatário) deve ser campo_obrigatorio. O valor vem do certificado, não de uma linha do texto.
 - intervalo: { "campo": "...", "min": number, "max": number }
 - calculo: { "expressao": "A+B", "campo_resultado": "...", "tolerancia": 0 }
-Use nomes de campo iguais aos rótulos do documento. No máximo 12 regras. Prefira campo_obrigatorio e formato.`,
-    `Nome sugerido pelo usuário: ${nomeSugerido || '(nenhum)'}\n\nTexto do documento:\n${texto}`
+Use nomes de campo iguais aos rótulos do documento. No máximo 12 regras. Prefira campo_obrigatorio e formato.
+Use a descrição para entender a finalidade do template e definir quais requisitos devem ser verificados, mesmo quando o PDF de exemplo não os cumprir.
+Use o PDF como fonte de exemplos de campos e estrutura, não como prova de que todos os requisitos estão atendidos.
+Não crie regras que não possam ser verificadas no documento ou nos dados nele presentes.`,
+    `Nome sugerido pelo usuário: ${nomeSugerido?.trim() || '(nenhum)'}
+Descrição orientadora fornecida pelo usuário: ${descricaoOrientadora?.trim() || '(nenhuma)'}
+
+Texto do documento de exemplo:
+${texto}`
   )
 
   const parsed = templateIaSchema.safeParse(raw)
@@ -153,7 +160,7 @@ Use nomes de campo iguais aos rótulos do documento. No máximo 12 regras. Prefi
 
   return {
     nome: nomeSugerido?.trim() || parsed.data.nome.trim(),
-    descricao: parsed.data.descricao.trim(),
+    descricao: descricaoOrientadora?.trim() || parsed.data.descricao.trim(),
     regras,
   }
 }
@@ -168,7 +175,8 @@ export async function extrairEAnalisarDocumento(
   texto: string,
   campos: string[],
   regras: Array<{ nome: string; tipo: string; parametros: unknown }>,
-  rotulos?: Record<string, string>
+  rotulos?: Record<string, string>,
+  descricaoTemplate?: string
 ) {
   const raw = await groqJson<unknown>(
     `Você extrai campos e analisa um documento contra regras de um template.
@@ -179,8 +187,10 @@ Responda APENAS JSON:
   "alertas": ["pontos de atenção"]
 }
 Use exatamente as chaves pedidas (identificadores), não os rótulos.
-Preencha todos os campos. Se não encontrar, use "". Não invente CPF, datas ou valores numéricos críticos.`,
-    `Campos (chaves): ${JSON.stringify(campos)}\nRótulos: ${JSON.stringify(rotulos || {})}\nRegras: ${JSON.stringify(regras)}\n\nTexto:\n${texto}`
+Use a descrição do template como contexto para interpretar a finalidade e os rótulos dos campos, não como evidência do conteúdo do PDF.
+Extraia os campos que estiverem presentes mesmo quando o documento não atender a uma ou mais regras. Para campos ausentes, use "".
+Não invente CPF, datas ou valores numéricos críticos.`,
+    `${descricaoTemplate ? `Descrição do template: ${descricaoTemplate}\n\n` : ''}Campos (chaves): ${JSON.stringify(campos)}\nRótulos: ${JSON.stringify(rotulos || {})}\nRegras: ${JSON.stringify(regras)}\n\nTexto do documento:\n${texto}`
   )
 
   const parsed = extracaoIaSchema.safeParse(raw)
@@ -207,9 +217,107 @@ const analiseTemplateSchema = z.object({
   regras: z.array(z.unknown()).optional().default([]),
 })
 
+const sugestaoTemplateSchema = z.object({
+  tipoDocumento: z.string(),
+  confianca: z.number().min(0).max(1),
+  templateExistenteId: z.string().optional(),
+  templateExistenteNome: z.string().optional(),
+  razao: z.string(),
+  sugerirNovoTemplate: z.boolean(),
+  nomeSugerido: z.string().optional(),
+  descricaoSugerida: z.string().optional(),
+})
+
+export async function sugerirTemplateParaDocumento(
+  texto: string,
+  templatesExistentes: Array<{ id: string; nome: string; categoria?: string; descricao?: string }>
+): Promise<{
+  tipoDocumento: string
+  confianca: number
+  templateExistenteId?: string
+  templateExistenteNome?: string
+  razao: string
+  sugerirNovoTemplate: boolean
+  nomeSugerido?: string
+  descricaoSugerida?: string
+}> {
+  if (!isGroqConfigured()) {
+    return {
+      tipoDocumento: 'Desconhecido',
+      confianca: 0,
+      razao: 'IA não configurada',
+      sugerirNovoTemplate: true,
+    }
+  }
+
+  const templatesInfo = templatesExistentes.map(t => 
+    `- ${t.id}: ${t.nome}${t.categoria ? ` (${t.categoria})` : ''}${t.descricao ? ` - ${t.descricao}` : ''}`
+  ).join('\n')
+
+  try {
+    const raw = await groqJson<unknown>(
+      `Você classifica um documento PDF e sugere qual template de validação usar.
+Responda APENAS JSON:
+{
+  "tipoDocumento": "nome do tipo detectado (ex: Nota Fiscal, Contrato, Laudo, Plano de Curso)",
+  "confianca": 0.95,
+  "templateExistenteId": "uuid do template existente ou null",
+  "templateExistenteNome": "nome do template existente ou null",
+  "razao": "explicação curta da classificação",
+  "sugerirNovoTemplate": false,
+  "nomeSugerido": "nome para novo template se sugerirNovoTemplate for true",
+  "descricaoSugerida": "descrição para novo template"
+}
+Regras:
+- Se houver template existente com confiança > 0.8, use-o (sugerirNovoTemplate: false)
+- Se não houver match claro, sugira novo template (sugerirNovoTemplate: true)
+- Confiança entre 0 e 1`,
+      `Templates existentes:\n${templatesInfo || '(nenhum)'}\n\nTexto do documento (início):\n${texto.slice(0, 3000)}`
+    )
+    const parsed = sugestaoTemplateSchema.safeParse(raw)
+    if (!parsed.success) throw new Error('Resposta inválida da IA')
+    return parsed.data
+  } catch (error) {
+    return {
+      tipoDocumento: 'Erro na classificação',
+      confianca: 0,
+      razao: error instanceof Error ? error.message : 'Falha desconhecida',
+      sugerirNovoTemplate: true,
+    }
+  }
+}
+
+const explicacaoFalhaSchema = z.object({
+  explicacao: z.string().min(1),
+})
+
+export async function explicarFalhaRegra(
+  regraNome: string,
+  regraTipo: string,
+  criterio: string,
+  valorEncontrado: string
+): Promise<string> {
+  if (!isGroqConfigured()) return ''
+  try {
+    const raw = await groqJson<unknown>(
+      `Você explica em português claro por que uma regra de validação documental falhou.
+Responda APENAS JSON: { "explicacao": "frase curta e direta" }
+Máximo 160 caracteres. Sem jargão técnico. Exemplo: "O CPF informado (123.456.789-00) tem dígito verificador inválido."`,
+      `Regra: ${regraNome} (${regraTipo})
+Critério avaliado: ${criterio}
+Valor encontrado no documento: ${valorEncontrado || '(vazio)'}`
+    )
+    const parsed = explicacaoFalhaSchema.safeParse(raw)
+    return parsed.success ? parsed.data.explicacao : ''
+  } catch {
+    return ''
+  }
+}
+
 export async function analisarTemplateComIa(
   regrasAtuais: unknown,
-  textoDocumento?: string
+  textoDocumento?: string,
+  descricaoTemplate?: string
 ) {
   const raw = await groqJson<unknown>(
     `Você analisa um template de validação documental e sugere melhorias.
@@ -226,8 +334,15 @@ Responda APENAS JSON:
     }
   ]
 }
-Só sugira regras NOVAS, que ainda não existam. Se o texto do documento vier, use-o para achar campos faltantes.`,
-    `Regras atuais: ${JSON.stringify(regrasAtuais)}\n\nTexto do documento (opcional):\n${textoDocumento || '(não enviado)'}`
+Só sugira regras NOVAS, que ainda não existam. Use a descrição como contexto sobre a finalidade e os requisitos do template.
+Se o texto do documento vier, compare-o com a descrição e as regras atuais para identificar campos ou requisitos relevantes que ainda não estejam cobertos.
+Um documento de exemplo pode não cumprir todos os requisitos; isso não impede a análise nem significa que a extração falhou.`,
+    `Descrição do template: ${descricaoTemplate || '(não informada)'}
+
+Regras atuais: ${JSON.stringify(regrasAtuais)}
+
+Texto do documento (opcional):
+${textoDocumento || '(não enviado)'}`
   )
 
   const parsed = analiseTemplateSchema.safeParse(raw)

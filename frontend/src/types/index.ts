@@ -89,7 +89,7 @@ export interface TesteTemplateResultado {
   }>
 }
 
-export interface ResultadoRegra { id: string; validacaoId: string; regraId: string; status: 'aprovado' | 'reprovado'; valorEncontrado?: string; criterio?: string; regra?: Pick<RegraValidacao, 'id' | 'nome' | 'tipo'> }
+export interface ResultadoRegra { id: string; validacaoId: string; regraId: string; status: 'aprovado' | 'reprovado'; valorEncontrado?: string; criterio?: string; explicacaoIa?: string; regra?: Pick<RegraValidacao, 'id' | 'nome' | 'tipo'> }
 export interface Validacao { id: string; documentoId: string; validadorId: string; resultado: 'aprovado' | 'reprovado'; observacoes?: string; criadoEm: string; validador?: Pick<Usuario, 'id' | 'nome'>; resultadosRegra?: ResultadoRegra[] }
 export interface HistoricoStatus { id: string; documentoId: string; statusAnterior?: string; statusNovo: string; usuarioId?: string; criadoEm: string }
 export interface Documento { id: string; usuarioId: string; templateId: string; nomeArquivo: string; hashSha256: string; dadosExtraidos?: Record<string, unknown>; status: StatusDocumento; codigoVerificacao?: string; qrcodeKey?: string; documentoOrigemId?: string; entidadeId?: string; dossieItemId?: string; dataEmissao?: string | null; dataValidade?: string | null; statusValidade?: ValidadeStatus | null; diasParaVencer?: number | null; renovacaoNecessaria?: boolean | null; criadoEm: string; usuario?: Pick<Usuario, 'id' | 'nome' | 'email'>; template?: Pick<Template, 'id' | 'nome'>; entidade?: Pick<Entidade, 'id' | 'nome'>; validacoes?: Validacao[]; historico?: HistoricoStatus[]; presignedUrl?: string; qrcodeUrl?: string }
