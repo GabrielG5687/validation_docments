@@ -18,8 +18,9 @@ const loading = ref(true)
 const error = ref('')
 const canAnalyze = computed(() => ['usuario', 'admin'].includes(auth.perfil || ''))
 const primeiroNome = computed(() => auth.user?.nome?.split(' ')[0] || 'usuário')
-const documentosPath = computed(() => (auth.perfil === 'usuario' ? '/documentos' : '/documentos/todos'))
+const documentosPath = computed(() => auth.perfil === 'usuario' && !auth.proprietarioEmpresa ? '/documentos' : '/documentos/todos')
 const acaoPrincipal = computed(() => {
+  if (auth.proprietarioEmpresa) return { to: '/validacao/fila', label: 'Abrir fila de revisão' }
   if (auth.perfil === 'usuario') return { to: '/documentos/upload', label: 'Enviar documento' }
   return { to: '/validacao/fila', label: 'Abrir fila de revisão' }
 })
@@ -64,18 +65,18 @@ useDashboardPolling(load)
       </div>
 
       <div class="mt-6 grid gap-4 lg:grid-cols-5">
-        <RouterLink :to="acaoPrincipal.to" class="surface flex flex-col justify-between p-5 lg:col-span-3">
+        <RouterLink :to="acaoPrincipal.to" :class="['surface flex flex-col justify-between p-5', auth.proprietarioEmpresa ? 'lg:col-span-5' : 'lg:col-span-3']">
           <div>
-            <p class="text-sm font-semibold text-ink">{{ auth.perfil === 'usuario' ? 'Enviar documentos' : 'Revisão pendente' }}</p>
+            <p class="text-sm font-semibold text-ink">{{ auth.perfil === 'usuario' && !auth.proprietarioEmpresa ? 'Enviar documentos' : 'Revisão pendente' }}</p>
             <p class="mt-1 max-w-md text-sm text-ink-muted">
-              {{ auth.perfil === 'usuario' ? 'Arraste um PDF no envio ou escolha o arquivo para vincular a um modelo.' : 'Abra a fila para decidir os documentos que já passaram pelas regras.' }}
+              {{ auth.perfil === 'usuario' && !auth.proprietarioEmpresa ? 'Arraste um PDF no envio ou escolha o arquivo para vincular a um modelo.' : 'Abra a fila para decidir os documentos que já passaram pelas regras.' }}
             </p>
           </div>
           <span class="mt-6 inline-flex h-24 items-center justify-center rounded-xl border border-dashed border-primary/30 bg-primary-light/40 text-sm font-semibold text-primary">
             <UploadCloud class="mr-2 h-5 w-5" />{{ acaoPrincipal.label }}
           </span>
         </RouterLink>
-        <div v-if="data?.conformidade && (auth.perfil === 'admin' || auth.perfil === 'coordenador')" class="card flex flex-col justify-between lg:col-span-2">
+        <div v-if="!auth.proprietarioEmpresa && data?.conformidade && (auth.perfil === 'admin' || auth.perfil === 'coordenador')" class="card flex flex-col justify-between lg:col-span-2">
           <div>
             <h2 class="text-sm font-semibold">Conformidade das entidades</h2>
             <p class="mt-1 text-sm text-ink-muted">{{ data.conformidade.totalEntidades ?? 0 }} cadastrada(s)</p>
@@ -89,7 +90,7 @@ useDashboardPolling(load)
             <RouterLink to="/entidades" class="mt-3 inline-flex text-sm font-semibold text-primary">Ver entidades</RouterLink>
           </div>
         </div>
-        <RouterLink v-else to="/entidades" class="card flex flex-col justify-between lg:col-span-2">
+        <RouterLink v-else-if="!auth.proprietarioEmpresa" to="/entidades" class="card flex flex-col justify-between lg:col-span-2">
           <div>
             <h2 class="text-sm font-semibold">Entidades e dossiês</h2>
             <p class="mt-1 text-sm text-ink-muted">Veja o que falta para cada empresa ou pessoa.</p>

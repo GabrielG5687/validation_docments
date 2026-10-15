@@ -6,7 +6,7 @@ import { errorHandler } from './middlewares/errorHandler'
 import { authenticate } from './middlewares/auth'
 import { requireRole } from './middlewares/roles'
 import { requireTemplateManager } from './middlewares/templateManager'
-import { resolveEmpresaContext } from './middlewares/empresaContext'
+import { requireNonOwnerWorkspaceAccess, requireWorkspaceAccess, resolveEmpresaContext } from './middlewares/empresaContext'
 import authRoutes from './routes/auth'
 import usuariosRoutes from './routes/usuarios'
 import templatesRoutes from './routes/templates'
@@ -92,22 +92,22 @@ app.use('/api/convites', convitesRoutes)
 app.use('/api/empresas', ...withEmpresa, empresasRoutes)
 
 // Usuarios — requires authentication + admin role
-app.use('/api/usuarios', ...withEmpresa, requireRole('admin'), usuariosRoutes)
+app.use('/api/usuarios', ...withEmpresa, requireWorkspaceAccess, requireNonOwnerWorkspaceAccess, requireRole('admin'), usuariosRoutes)
 
 // Templates — leitura por qualquer autenticado (isolada por empresa);
 // escrita exige admin global ou proprietário da empresa (middleware na rota)
 app.use('/api/templates', ...withEmpresa, templatesRoutes)
 
 // Regras — escrita restrita a quem gerencia os templates da empresa ativa
-app.use('/api/regras', ...withEmpresa, requireTemplateManager, regrasRoutes)
+app.use('/api/regras', ...withEmpresa, requireWorkspaceAccess, requireTemplateManager, regrasRoutes)
 
 app.use('/api/documentos', ...withEmpresa, documentosRoutes)
 app.use('/api/verificar', verificarRoutes)
-app.use('/api/relatorios', ...withEmpresa, relatoriosRoutes)
-app.use('/api/entidades', ...withEmpresa, entidadesRoutes)
-app.use('/api/dossies', ...withEmpresa, dossiesRoutes)
+app.use('/api/relatorios', ...withEmpresa, requireWorkspaceAccess, requireNonOwnerWorkspaceAccess, relatoriosRoutes)
+app.use('/api/entidades', ...withEmpresa, requireWorkspaceAccess, requireNonOwnerWorkspaceAccess, entidadesRoutes)
+app.use('/api/dossies', ...withEmpresa, requireWorkspaceAccess, requireNonOwnerWorkspaceAccess, dossiesRoutes)
 app.use('/api/notificacoes', ...withEmpresa, notificacoesRoutes)
-app.get('/api/dashboard', ...withEmpresa, dashboard)
+app.get('/api/dashboard', ...withEmpresa, requireWorkspaceAccess, dashboard)
 
 // ─── 404 handler ──────────────────────────────────────────────────────────
 app.use((_req: Request, res: Response) => {

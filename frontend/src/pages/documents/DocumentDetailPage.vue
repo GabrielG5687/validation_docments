@@ -118,6 +118,10 @@ async function revalidateSignature() {
         <div>
           <p class="muted">Detalhes do documento</p>
           <h1 class="page-title">{{ store.documentoAtual.nomeArquivo }}</h1>
+          <p v-if="store.documentoAtual.usuario" class="mt-1 text-sm text-ink-muted">
+            Enviado por {{ store.documentoAtual.usuario.nome }}
+            <span v-if="store.documentoAtual.usuario.email">· {{ store.documentoAtual.usuario.email }}</span>
+          </p>
         </div>
         <div class="flex items-center gap-4">
           <BaseButton v-if="podeRevisar" :loading="reviewing" @click="confirmarRevisao('aprovado')">Confirmar revisão</BaseButton>

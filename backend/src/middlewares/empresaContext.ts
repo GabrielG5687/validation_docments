@@ -56,6 +56,22 @@ export function requireEmpresa(req: Request, res: Response, next: NextFunction):
   next()
 }
 
+export function requireWorkspaceAccess(req: Request, res: Response, next: NextFunction): void {
+  if (req.empresa?.papel === 'MEMBER') {
+    res.status(403).json({ error: 'Este recurso não está disponível para membros. Acesse seus documentos.' })
+    return
+  }
+  next()
+}
+
+export function requireNonOwnerWorkspaceAccess(req: Request, res: Response, next: NextFunction): void {
+  if (req.empresa?.papel === 'OWNER') {
+    res.status(403).json({ error: 'Este módulo não está disponível para proprietários da empresa.' })
+    return
+  }
+  next()
+}
+
 export function requireEmpresaPermissao(...permissoes: PermissaoEmpresa[]) {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.empresa) {
@@ -71,4 +87,4 @@ export function requireEmpresaPermissao(...permissoes: PermissaoEmpresa[]) {
   }
 }
 
-export default { resolveEmpresaContext, requireEmpresa, requireEmpresaPermissao }
+export default { resolveEmpresaContext, requireEmpresa, requireWorkspaceAccess, requireNonOwnerWorkspaceAccess, requireEmpresaPermissao }

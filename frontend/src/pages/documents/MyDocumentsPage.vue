@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useAuthStore } from '../../stores/auth'
 import { useDocumentStore } from '../../stores/document'
 import BaseSpinner from '../../components/ui/BaseSpinner.vue'
 import BaseAlert from '../../components/ui/BaseAlert.vue'
@@ -11,6 +12,7 @@ import ValidadeSeal from '../../components/document/ValidadeSeal.vue'
 import { formatDate } from '../../utils/formatDate'
 
 const store = useDocumentStore()
+const auth = useAuthStore()
 const route = useRoute()
 const validade = ref('')
 const busca = ref(typeof route.query.q === 'string' ? route.query.q : '')
@@ -32,7 +34,7 @@ onMounted(load)
 <template>
   <div>
     <PageHeader title="Documentos" description="Acompanhe o status, a validade e o que ainda precisa de revisão.">
-      <RouterLink to="/documentos/upload"><BaseButton>Enviar documento</BaseButton></RouterLink>
+      <RouterLink v-if="auth.perfil === 'usuario'" to="/documentos/upload"><BaseButton>Enviar documento</BaseButton></RouterLink>
     </PageHeader>
     <div class="mb-4 flex flex-col gap-3 sm:flex-row">
       <input v-model="busca" class="field sm:max-w-sm" placeholder="Buscar por nome do arquivo" aria-label="Buscar documentos" @keyup.enter="load" />
@@ -69,7 +71,7 @@ onMounted(load)
             <td colspan="5" class="px-5 py-12 text-center">
               <p class="font-semibold text-ink">Nenhum documento por aqui</p>
               <p class="mt-1 text-sm text-ink-muted">Envie um PDF para iniciar a validação.</p>
-              <RouterLink to="/documentos/upload" class="mt-4 inline-flex"><BaseButton>Enviar documento</BaseButton></RouterLink>
+              <RouterLink v-if="auth.perfil === 'usuario'" to="/documentos/upload" class="mt-4 inline-flex"><BaseButton>Enviar documento</BaseButton></RouterLink>
             </td>
           </tr>
         </tbody>

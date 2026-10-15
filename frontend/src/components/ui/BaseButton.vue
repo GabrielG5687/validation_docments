@@ -1,6 +1,6 @@
 <script setup lang="ts">
 withDefaults(
-  defineProps<{ variant?: 'primary' | 'secondary' | 'danger' | 'ghost'; loading?: boolean; type?: 'button' | 'submit' | 'reset' }>(),
+  defineProps<{ variant?: 'primary' | 'secondary' | 'success' | 'danger' | 'ghost'; loading?: boolean; type?: 'button' | 'submit' | 'reset' }>(),
   { variant: 'primary', loading: false, type: 'button' },
 )
 </script>
@@ -13,6 +13,7 @@ withDefaults(
       {
         'bg-primary text-white hover:bg-primary-hover': variant === 'primary',
         'border border-line bg-white text-ink hover:bg-canvas': variant === 'secondary',
+        'bg-emerald-600 text-white hover:bg-emerald-700': variant === 'success',
         'bg-red-600 text-white hover:bg-red-700': variant === 'danger',
         'text-ink-muted hover:bg-canvas hover:text-ink': variant === 'ghost',
       },

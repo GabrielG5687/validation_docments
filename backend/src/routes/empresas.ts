@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { requireWorkspaceAccess } from '../middlewares/empresaContext'
 import {
   listMinhasEmpresas,
   detailEmpresa,
@@ -14,6 +15,7 @@ import {
 const router = Router()
 
 router.get('/', listMinhasEmpresas)
+router.use(requireWorkspaceAccess)
 router.get('/:id', detailEmpresa)
 router.get('/:id/membros', listMembros)
 router.patch('/:id/membros/:memberId', updateMembro)

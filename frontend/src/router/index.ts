@@ -12,7 +12,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/callback', component: () => import('../pages/auth/CallbackPage.vue'), meta: { public: true, layout: 'auth' } },
   { path: '/verificar/:codigo?', component: () => import('../pages/public/VerifyPage.vue'), meta: { public: true, layout: 'public' } },
   { path: '/dashboard', component: () => import('../pages/dashboard/DashboardPage.vue') },
-  { path: '/documentos', component: () => import('../pages/documents/MyDocumentsPage.vue'), meta: { roles: ['usuario'] } },
+  { path: '/documentos', component: () => import('../pages/documents/MyDocumentsPage.vue') },
   { path: '/documentos/todos', component: () => import('../pages/documents/AllDocumentsPage.vue'), meta: { roles: ['validador', 'coordenador', 'admin'] } },
   { path: '/documentos/upload', component: () => import('../pages/documents/UploadPage.vue'), meta: { roles: ['usuario'] } },
   { path: '/documentos/:id', component: () => import('../pages/documents/DocumentDetailPage.vue') },
@@ -44,6 +44,28 @@ router.beforeEach(async (to) => {
 
   if (to.meta.public) return true
   if (!auth.token) return { path: '/login', query: { redirect: to.fullPath } }
+  if (auth.proprietarioEmpresa) {
+    const moduloPermitido = to.path === '/dashboard'
+      || to.path === '/documentos'
+      || to.path === '/documentos/todos'
+      || (to.path === '/documentos/upload' && ['usuario', 'admin'].includes(auth.perfil || ''))
+      || (/^\/documentos\/[^/]+$/.test(to.path) && to.path !== '/documentos/todos' && to.path !== '/documentos/upload')
+      || to.path === '/validacao/fila'
+      || /^\/validacao\/[^/]+$/.test(to.path)
+      || to.path === '/templates'
+      || /^\/templates\/[^/]+(?:\/versoes|\/regras)?$/.test(to.path)
+      || to.path === '/membros'
+    if (!moduloPermitido) return '/dashboard'
+    return true
+  }
+  if (auth.somenteDocumentos) {
+    const documentoArea = to.path === '/documentos'
+      || /^\/documentos\/[^/]+$/.test(to.path)
+        && to.path !== '/documentos/todos'
+        && to.path !== '/documentos/upload'
+    const podeEnviar = to.path === '/documentos/upload' && auth.perfil === 'usuario'
+    if (!documentoArea && !podeEnviar) return '/documentos'
+  }
   if (to.path === '/dashboard' && !auth.podeVerDashboard) return auth.destinoInicial
   if (to.path === '/relatorios' && !auth.podeVerRelatorios) return auth.destinoInicial
   if (to.meta.revisao && !auth.podeRevisar) return auth.destinoInicial

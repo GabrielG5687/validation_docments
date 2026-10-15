@@ -14,7 +14,7 @@ const viewKey = computed(() => `${route.fullPath}::${auth.empresaAtivaId || 'non
 <template>
   <div class="flex min-h-screen bg-canvas">
     <AppSidebar :open="menuOpen" @close="menuOpen = false" />
-    <div class="flex min-w-0 flex-1 flex-col">
+    <div class="flex min-w-0 flex-1 flex-col lg:ml-64">
       <AppHeader @toggle="menuOpen = !menuOpen" />
       <ConnectionBanner />
       <main :class="['min-w-0 flex-1', studio ? 'overflow-hidden p-0' : 'px-4 py-6 lg:px-8 lg:py-7']">

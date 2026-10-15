@@ -110,6 +110,23 @@ export async function dashboard(req: Request, res: Response, next: NextFunction)
       return
     }
     const perfil = req.user.perfil
+    if (req.empresa.papel === 'OWNER') {
+      const where: Prisma.DocumentoWhereInput = { template: { empresaId: req.empresa.id } }
+      const docs = await prisma.documento.findMany({
+        where,
+        orderBy: { criadoEm: 'desc' },
+        take: 5,
+        select: { id: true, nomeArquivo: true, status: true, criadoEm: true, template: { select: { id: true, nome: true } } },
+      })
+      const [total, aguardandoRevisao, aprovados, reprovados, vencendo30] = await Promise.all([
+        prisma.documento.count({ where }),
+        prisma.documento.count({ where: { ...where, status: 'aguardando_revisao' } }),
+        prisma.documento.count({ where: { ...where, status: 'aprovado' } }),
+        prisma.documento.count({ where: { ...where, status: { in: ['reprovado', 'reprovado_automatico'] } } }),
+        listarVencendo(where),
+      ])
+      res.json({ perfil, contadores: { total, aguardandoRevisao, aprovados, reprovados }, ultimosDocumentos: docs, vencendo30 }); return
+    }
     if (perfil === 'usuario') {
       const docs = await prisma.documento.findMany({ where: { usuarioId: req.user.id }, orderBy: { criadoEm: 'desc' }, take: 5, select: { id: true, nomeArquivo: true, status: true, criadoEm: true } })
       const [total, aguardandoRevisao, aprovados, reprovados, vencendo30] = await Promise.all([

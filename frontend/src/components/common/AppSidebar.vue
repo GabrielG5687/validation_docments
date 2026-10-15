@@ -4,6 +4,7 @@ import { Building2, ChevronsUpDown, FileCheck, FileText, LayoutDashboard, Librar
 import { useAuthStore } from '../../stores/auth'
 import { useNotificationStore } from '../../stores/notification'
 import type { PapelEmpresa } from '../../types'
+import frontendPackage from '../../../package.json'
 import BrandLogo from './BrandLogo.vue'
 
 defineProps<{ open?: boolean }>()
@@ -33,6 +34,10 @@ function rotuloPapel(papel?: PapelEmpresa) {
 }
 
 function itemVisivel(entry: (typeof items)[number]) {
+  if (auth.somenteDocumentos) return entry.to === '/documentos'
+  if (auth.proprietarioEmpresa) {
+    return ['/dashboard', '/documentos/todos', '/validacao/fila', '/templates', '/membros'].includes(entry.to)
+  }
   if (entry.to === '/validacao/fila') return auth.podeRevisar
   if (!auth.perfil || !entry.roles.includes(auth.perfil)) return false
   if ('empresaPerm' in entry && entry.empresaPerm && !auth.temPermissaoEmpresa(entry.empresaPerm)) return false
@@ -46,6 +51,10 @@ function selecionarOrganizacao(id: string) {
   const empresa = auth.empresas.find((e) => e.id === id)
   auth.setEmpresaAtiva(id)
   notice.push({ type: 'success', message: `Agora em ${empresa?.nome || 'outra organização'}` })
+  if (auth.somenteDocumentos) {
+    if (route.path !== '/documentos' && !route.path.startsWith('/documentos/')) router.push('/documentos')
+    return
+  }
   if ((route.path === '/dashboard' && !auth.podeVerDashboard) || (route.path === '/relatorios' && !auth.podeVerRelatorios)) {
     router.push(auth.destinoInicial)
   }
@@ -53,13 +62,13 @@ function selecionarOrganizacao(id: string) {
 </script>
 <template>
   <div v-if="open" class="fixed inset-0 z-30 bg-ink/30 lg:hidden" @click="emit('close')" />
-  <aside :class="['fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-line bg-white transition lg:static lg:translate-x-0', open ? 'translate-x-0' : '-translate-x-full']">
+  <aside :class="['fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-line bg-white transition lg:translate-x-0', open ? 'translate-x-0' : '-translate-x-full']">
     <div class="flex h-16 items-center px-5">
       <RouterLink :to="auth.destinoInicial" aria-label="ValidaDoc" @click="emit('close')">
         <BrandLogo size="md" />
       </RouterLink>
     </div>
-    <nav class="flex-1 space-y-0.5 px-3" aria-label="Navegação principal">
+    <nav class="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-3" aria-label="Navegação principal">
       <RouterLink
         v-for="item in items.filter(itemVisivel)"
         :key="item.to"
@@ -101,6 +110,9 @@ function selecionarOrganizacao(id: string) {
       <p v-else-if="auth.empresaAtiva" class="rounded-lg bg-canvas px-3 py-2">
         <span class="block truncate text-sm font-semibold text-ink">{{ auth.empresaAtiva.nome }}</span>
         <span class="block text-xs text-ink-muted">{{ rotuloPapel(auth.empresaAtiva.papel) }}</span>
+      </p>
+      <p class="border-t border-line pt-2 text-center text-[11px] font-medium tracking-wide text-ink-muted">
+        v{{ frontendPackage.version }}
       </p>
     </div>
   </aside>

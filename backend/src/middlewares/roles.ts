@@ -17,6 +17,10 @@ export function requireRevisor(req: Request, res: Response, next: NextFunction):
     res.status(401).json({ error: 'Token inválido ou expirado' })
     return
   }
+  if (req.empresa?.papel === 'MEMBER') {
+    res.status(403).json({ error: 'A revisão está disponível apenas para administradores e revisores da organização' })
+    return
+  }
   const papel = req.empresa?.papel
   if (PERFIS_REVISAO.includes(req.user.perfil) || papel === 'OWNER' || papel === 'ADMIN') {
     next()

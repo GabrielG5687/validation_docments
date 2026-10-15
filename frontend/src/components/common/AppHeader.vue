@@ -20,7 +20,17 @@ const naoLidas = computed(() => notificacoes.value.filter((n) => !n.lida).length
 
 const destinos = computed(() => {
   const q = busca.value.trim()
-  const docs = auth.perfil === 'usuario' ? '/documentos' : '/documentos/todos'
+  const docs = auth.perfil === 'usuario' && !auth.proprietarioEmpresa ? '/documentos' : '/documentos/todos'
+  if (auth.somenteDocumentos) {
+    return [{ label: 'Documentos', to: { path: '/documentos', query: q ? { q } : {} } }]
+  }
+  if (auth.proprietarioEmpresa) {
+    return [
+      { label: 'Documentos', to: { path: docs, query: q ? { q } : {} } },
+      { label: 'Membros', to: { path: '/membros', query: q ? { q } : {} } },
+      { label: 'Modelos', to: { path: '/templates', query: q ? { q } : {} } },
+    ]
+  }
   const itens = [
     { label: 'Documentos', to: { path: docs, query: q ? { q } : {} } },
     { label: 'Entidades', to: { path: '/entidades', query: q ? { q } : {} } },

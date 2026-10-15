@@ -81,7 +81,9 @@ export async function createDocument(req: Request, res: Response, next: NextFunc
       res.status(422).json({ error: 'templateId é obrigatório' })
       return
     }
-    const template = await prisma.template.findUnique({ where: { id: templateId } })
+    const template = req.empresa && ['MEMBER', 'OWNER'].includes(req.empresa.papel)
+      ? await prisma.template.findFirst({ where: { id: templateId, empresaId: req.empresa.id } })
+      : await prisma.template.findUnique({ where: { id: templateId } })
     if (!template || template.status === 'inativo') {
       res.status(404).json({ error: 'Template não encontrado ou inativo' })
       return
@@ -219,7 +221,11 @@ export async function listDocumentos(req: Request, res: Response, next: NextFunc
     }
     const { status, templateId, search, dataInicio, dataFim, validade } = parsed.data
     const where: Prisma.DocumentoWhereInput = {
-      ...(req.user.perfil === 'usuario' ? { usuarioId: req.user.id } : {}),
+      ...(req.empresa?.papel === 'OWNER'
+        ? { template: { empresaId: req.empresa.id } }
+        : req.empresa?.papel === 'MEMBER'
+        ? { usuarioId: req.user.id, template: { empresaId: req.empresa.id } }
+        : req.user.perfil === 'usuario' ? { usuarioId: req.user.id } : {}),
       ...(status ? { status } : {}),
       ...(templateId ? { templateId } : {}),
       ...(dataInicio || dataFim ? { criadoEm: { ...(dataInicio ? { gte: dataInicio } : {}), ...(dataFim ? { lte: dataFim } : {}) } } : {}),
@@ -238,8 +244,15 @@ export async function listDocumentos(req: Request, res: Response, next: NextFunc
 export async function detailDocumento(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     if (!req.user) return
-    const documento = await prisma.documento.findUnique({
-      where: { id: req.params.id },
+    const documento = await prisma.documento.findFirst({
+      where: {
+        id: req.params.id,
+        ...(req.empresa?.papel === 'OWNER'
+          ? { template: { empresaId: req.empresa.id } }
+          : req.empresa?.papel === 'MEMBER'
+          ? { usuarioId: req.user.id, template: { empresaId: req.empresa.id } }
+          : {}),
+      },
       include: {
         usuario: { select: { id: true, nome: true, email: true } },
         template: { select: { id: true, nome: true } },
@@ -248,7 +261,7 @@ export async function detailDocumento(req: Request, res: Response, next: NextFun
       },
     })
     if (!documento) { res.status(404).json({ error: 'Documento não encontrado' }); return }
-    if (req.user.perfil === 'usuario' && documento.usuarioId !== req.user.id) {
+    if (req.empresa?.papel !== 'OWNER' && (req.user.perfil === 'usuario' || req.empresa?.papel === 'MEMBER') && documento.usuarioId !== req.user.id) {
       res.status(403).json({ error: 'Acesso negado para o perfil atual' }); return
     }
     const [presignedUrl, qrcodeUrl] = await Promise.all([
@@ -259,10 +272,14 @@ export async function detailDocumento(req: Request, res: Response, next: NextFun
   } catch (error) { next(error) }
 }
 
-export async function listPendentes(_req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function listPendentes(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
+    const where: Prisma.DocumentoWhereInput = {
+      status: 'aguardando_revisao',
+      ...(req.empresa?.papel === 'OWNER' ? { template: { empresaId: req.empresa.id } } : {}),
+    }
     const data = await prisma.documento.findMany({
-      where: { status: 'aguardando_revisao' },
+      where,
       orderBy: { criadoEm: 'asc' },
       include: { usuario: { select: { id: true, nome: true } }, template: { select: { id: true, nome: true } } },
     })
@@ -273,9 +290,12 @@ export async function listPendentes(_req: Request, res: Response, next: NextFunc
 export async function iniciarRevisao(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     if (!req.user) return
-    const updated = await prisma.documento.updateMany({ where: { id: req.params.id, status: 'aguardando_revisao' }, data: { status: 'em_revisao' } })
+    const companyScope: Prisma.DocumentoWhereInput = req.empresa?.papel === 'OWNER'
+      ? { template: { empresaId: req.empresa.id } }
+      : {}
+    const updated = await prisma.documento.updateMany({ where: { id: req.params.id, status: 'aguardando_revisao', ...companyScope }, data: { status: 'em_revisao' } })
     if (!updated.count) {
-      const doc = await prisma.documento.findUnique({ where: { id: req.params.id }, select: { id: true, status: true } })
+      const doc = await prisma.documento.findFirst({ where: { id: req.params.id, ...companyScope }, select: { id: true, status: true } })
       if (!doc) { res.status(404).json({ error: 'Documento não encontrado' }); return }
       if (doc.status === 'em_revisao') { res.status(409).json({ error: 'Documento já está sendo revisado por outro validador' }); return }
       res.status(409).json({ error: 'Documento não está disponível para revisão' }); return
@@ -294,7 +314,16 @@ export async function finalizarRevisao(req: Request, res: Response, next: NextFu
     if (resultado === 'reprovado' && (!observacoes || observacoes.trim().length < 10)) {
       res.status(422).json({ error: 'Informe o motivo da reprovação (mínimo 10 caracteres)' }); return
     }
-    const documento = await prisma.documento.findUnique({ where: { id: req.params.id } })
+    const documento = await prisma.documento.findFirst({
+      where: {
+        id: req.params.id,
+        ...(req.empresa?.papel === 'OWNER'
+          ? { template: { empresaId: req.empresa.id } }
+          : req.empresa?.papel === 'MEMBER'
+          ? { usuarioId: req.user.id, template: { empresaId: req.empresa.id } }
+          : {}),
+      },
+    })
     if (!documento) { res.status(404).json({ error: 'Documento não encontrado' }); return }
     if (documento.status !== 'em_revisao') { res.status(409).json({ error: 'Documento não está em revisão' }); return }
     let codigoVerificacao: string | undefined
@@ -308,7 +337,11 @@ export async function finalizarRevisao(req: Request, res: Response, next: NextFu
     try {
       await prisma.$transaction(async (tx) => {
         const claimed = await tx.documento.updateMany({
-          where: { id: documento.id, status: 'em_revisao' },
+          where: {
+            id: documento.id,
+            status: 'em_revisao',
+            ...(req.empresa?.papel === 'OWNER' ? { template: { empresaId: req.empresa.id } } : {}),
+          },
           data: { status: resultado, codigoVerificacao, qrcodeKey },
         })
         if (!claimed.count) {
@@ -335,12 +368,17 @@ export async function finalizarRevisao(req: Request, res: Response, next: NextFu
 export async function validarAssinaturaDocumento(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     if (!req.user) return
-    const documento = await prisma.documento.findUnique({ where: { id: req.params.id } })
+    const documento = await prisma.documento.findFirst({
+      where: {
+        id: req.params.id,
+        ...(req.empresa?.papel === 'OWNER' ? { template: { empresaId: req.empresa.id } } : {}),
+      },
+    })
     if (!documento) {
       res.status(404).json({ error: 'Documento não encontrado' })
       return
     }
-    if (req.user.perfil === 'usuario' && documento.usuarioId !== req.user.id) {
+    if (req.empresa?.papel !== 'OWNER' && (req.user.perfil === 'usuario' || req.empresa?.papel === 'MEMBER') && documento.usuarioId !== req.user.id) {
       res.status(403).json({ error: 'Acesso negado para o perfil atual' })
       return
     }
@@ -367,7 +405,14 @@ export async function validarAssinaturaDocumento(req: Request, res: Response, ne
 export async function cancelarRevisao(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     if (!req.user) return
-    const updated = await prisma.documento.updateMany({ where: { id: req.params.id, status: 'em_revisao' }, data: { status: 'aguardando_revisao' } })
+    const updated = await prisma.documento.updateMany({
+      where: {
+        id: req.params.id,
+        status: 'em_revisao',
+        ...(req.empresa?.papel === 'OWNER' ? { template: { empresaId: req.empresa.id } } : {}),
+      },
+      data: { status: 'aguardando_revisao' },
+    })
     if (!updated.count) { res.status(409).json({ error: 'Documento não está em revisão' }); return }
     await prisma.historicoStatus.create({ data: { documentoId: req.params.id, statusAnterior: 'em_revisao', statusNovo: 'aguardando_revisao', usuarioId: req.user.id } })
     res.json({ id: req.params.id, status: 'aguardando_revisao' })

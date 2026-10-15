@@ -12,6 +12,8 @@ export const useAuthStore = defineStore('auth', () => {
   const perfil = computed<Perfil | undefined>(() => user.value?.perfil)
 
   const empresaAtiva = computed(() => empresas.value.find((e) => e.id === empresaAtivaId.value) || empresas.value[0] || null)
+  const somenteDocumentos = computed(() => empresaAtiva.value?.papel === 'MEMBER')
+  const proprietarioEmpresa = computed(() => empresaAtiva.value?.papel === 'OWNER')
 
   /** Espelha `podeGerenciarTemplates` do backend: admin global ou OWNER da empresa ativa. */
   const podeGerenciarTemplates = computed(
@@ -36,6 +38,7 @@ export const useAuthStore = defineStore('auth', () => {
   })
 
   const destinoInicial = computed(() => {
+    if (somenteDocumentos.value) return '/documentos'
     if (podeVerDashboard.value) return '/dashboard'
     if (perfil.value === 'usuario') return '/documentos'
     if (perfil.value === 'validador' || perfil.value === 'coordenador' || perfil.value === 'admin') return '/documentos/todos'
@@ -94,6 +97,8 @@ export const useAuthStore = defineStore('auth', () => {
     empresas,
     empresaAtivaId,
     empresaAtiva,
+    somenteDocumentos,
+    proprietarioEmpresa,
     podeGerenciarTemplates,
     podeVerDashboard,
     podeVerRelatorios,
