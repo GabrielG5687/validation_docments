@@ -1,9 +1,13 @@
 import { z } from 'zod'
+import { decode, encode } from '@toon-format/toon'
 import { sanitizeRegrasSugeridas } from '../utils/regraParams'
 import { validarRegexGerado } from '../utils/regexGerado'
 
 const MAX_CHARS = 12_000
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
+
+const TOON_INSTRUCAO =
+  'Responda APENAS em TOON, sem JSON nem texto fora do formato: um "chave: valor" por linha, indentação de 2 espaços e sem chaves; lista = cabeçalho "chave[N]:" seguido de N itens; strings vazias ou com vírgula entre aspas duplas; [N] sempre igual ao número real de itens.'
 
 export class GroqConfigError extends Error {
   constructor(message = 'GROQ_API_KEY não configurada') {
@@ -16,11 +20,37 @@ export function isGroqConfigured(): boolean {
   return Boolean(process.env.GROQ_API_KEY?.trim())
 }
 
-function stripFences(content: string): string {
-  return content.trim().replace(/^```(?:json)?\s*/i, '').replace(/```$/u, '').trim()
+function extrairConteudo(content: string): string {
+  const texto = content.trim()
+  const bloco = texto.match(/```[a-zA-Z]*\s*([\s\S]*?)```/)
+  if (bloco) return bloco[1].trim()
+  return texto.replace(/^```(?:toon|json)?\s*/i, '').replace(/```$/u, '').trim()
 }
 
-async function groqJson<T>(system: string, user: string): Promise<T> {
+function extrairJson(texto: string): string {
+  const inicio = texto.indexOf('{')
+  const fim = texto.lastIndexOf('}')
+  return inicio >= 0 && fim > inicio ? texto.slice(inicio, fim + 1) : texto
+}
+
+function parseRespostaIa(content: string): unknown {
+  const texto = extrairConteudo(content)
+  for (const candidato of [texto, extrairJson(texto)]) {
+    try {
+      return JSON.parse(candidato) as unknown
+    } catch {
+      // tenta o próximo formato
+    }
+  }
+  return decode(texto, { strict: false }) as unknown
+}
+
+function blocoToon(valor: unknown): string {
+  const toon = encode(valor) || (Array.isArray(valor) ? '[]' : '{}')
+  return ['```toon', toon, '```'].join('\n')
+}
+
+async function groqToon<T>(system: string, user: string): Promise<T> {
   const key = process.env.GROQ_API_KEY?.trim()
   if (!key) throw new GroqConfigError()
 
@@ -34,48 +64,45 @@ async function groqJson<T>(system: string, user: string): Promise<T> {
 
   let lastError = 'Falha ao consultar a Groq'
   for (const model of models) {
-    for (const useJsonMode of [true, false]) {
-      const controller = new AbortController()
-      const timer = setTimeout(() => controller.abort(), 45_000)
-      try {
-        const body: Record<string, unknown> = {
-          model,
-          temperature: 0,
-          messages: [
-            { role: 'system', content: system },
-            { role: 'user', content: user.slice(0, MAX_CHARS) },
-          ],
-        }
-        if (useJsonMode) body.response_format = { type: 'json_object' }
-
-        const response = await fetch(GROQ_URL, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${key}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(body),
-          signal: controller.signal,
-        })
-
-        const raw = await response.text()
-        if (!response.ok) {
-          lastError = `Falha na Groq (${response.status}): ${raw.slice(0, 280)}`
-          continue
-        }
-
-        const data = JSON.parse(raw) as { choices?: Array<{ message?: { content?: string } }> }
-        const content = data.choices?.[0]?.message?.content
-        if (!content) {
-          lastError = 'Resposta vazia da Groq'
-          continue
-        }
-        return JSON.parse(stripFences(content)) as T
-      } catch (error) {
-        lastError = error instanceof Error ? error.message : lastError
-      } finally {
-        clearTimeout(timer)
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 45_000)
+    try {
+      const body: Record<string, unknown> = {
+        model,
+        temperature: 0,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: user.slice(0, MAX_CHARS) },
+        ],
       }
+
+      const response = await fetch(GROQ_URL, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${key}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      })
+
+      const raw = await response.text()
+      if (!response.ok) {
+        lastError = `Falha na Groq (${response.status}): ${raw.slice(0, 280)}`
+        continue
+      }
+
+      const data = JSON.parse(raw) as { choices?: Array<{ message?: { content?: string } }> }
+      const content = data.choices?.[0]?.message?.content
+      if (!content) {
+        lastError = 'Resposta vazia da Groq'
+        continue
+      }
+      return parseRespostaIa(content) as T
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : lastError
+    } finally {
+      clearTimeout(timer)
     }
   }
 
@@ -90,9 +117,11 @@ const regexIaSchema = z.object({
 export async function gerarRegexComIa(descricao: string) {
   const texto = descricao.trim()
   if (texto.length < 3) throw new Error('Descreva o formato que deve ser aceito.')
-  const raw = await groqJson<unknown>(
+  const raw = await groqToon<unknown>(
     `Você gera uma expressão regular JavaScript para validar um campo documental.
-Responda APENAS JSON: { "regex": "fonte sem barras", "exemplo": "um valor que a regex aceita" }
+${TOON_INSTRUCAO} Exemplo de resposta:
+regex: fonte sem barras
+exemplo: um valor que a regex aceita
 Regras:
 - A regex valida o valor inteiro. Use ^ e $.
 - Não use lookbehind. Evite quantificadores aninhados.
@@ -117,30 +146,27 @@ const templateIaSchema = z.object({
 })
 
 export async function gerarTemplateComIa(texto: string, nomeSugerido?: string, descricaoOrientadora?: string) {
-  const raw = await groqJson<unknown>(
+  const raw = await groqToon<unknown>(
     `Você é um especialista em validação documental.
 Gere um template de regras a partir do texto de um PDF de exemplo e da descrição orientadora, se fornecida.
-Responda APENAS um JSON com:
-{
-  "nome": "string",
-  "descricao": "string",
-  "regras": [
-    {
-      "nome": "string",
-      "tipo": "campo_obrigatorio" | "formato" | "intervalo" | "calculo",
-      "obrigatoria": true,
-      "parametros": {}
-    }
-  ]
-}
+${TOON_INSTRUCAO}
+Cada regra tem nome, tipo (campo_obrigatorio, formato, intervalo ou calculo), obrigatoria e parametros. Exemplo de resposta:
+nome: nome do template
+descricao: descrição do template
+regras[1]:
+  - nome: nome da regra
+    tipo: campo_obrigatorio
+    obrigatoria: true
+    parametros:
+      campo: Nome do campo
 Regras de parametros:
-- campo_obrigatorio: { "campo": "Nome do campo como aparece no documento" }
-- formato: { "campo": "...", "regex": "expressão regular" }
+- campo_obrigatorio: parametros.campo = nome do campo como aparece no documento
+- formato: parametros.campo e parametros.regex (expressão regular)
 - Data brasileira: use exatamente ^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\\d{4}$
 - Nunca escreva dd, mm ou aaaa como texto dentro da regex.
 - Campo de assinatura digital (orientador, responsável, signatário) deve ser campo_obrigatorio. O valor vem do certificado, não de uma linha do texto.
-- intervalo: { "campo": "...", "min": number, "max": number }
-- calculo: { "expressao": "A+B", "campo_resultado": "...", "tolerancia": 0 }
+- intervalo: parametros.campo, parametros.min (número) e parametros.max (número)
+- calculo: parametros.expressao ("A+B"), parametros.campo_resultado e parametros.tolerancia (número)
 Use nomes de campo iguais aos rótulos do documento. No máximo 12 regras. Prefira campo_obrigatorio e formato.
 Use a descrição para entender a finalidade do template e definir quais requisitos devem ser verificados, mesmo quando o PDF de exemplo não os cumprir.
 Use o PDF como fonte de exemplos de campos e estrutura, não como prova de que todos os requisitos estão atendidos.
@@ -178,19 +204,28 @@ export async function extrairEAnalisarDocumento(
   rotulos?: Record<string, string>,
   descricaoTemplate?: string
 ) {
-  const raw = await groqJson<unknown>(
+  const raw = await groqToon<unknown>(
     `Você extrai campos e analisa um documento contra regras de um template.
-Responda APENAS JSON:
-{
-  "campos": { "chave_do_campo": "valor encontrado ou string vazia" },
-  "resumo": "síntese curta da conformidade",
-  "alertas": ["pontos de atenção"]
-}
+${TOON_INSTRUCAO} Exemplo de resposta:
+campos:
+  codigo_verificacao: 6065c033f2
+  data_emissao: ""
+resumo: Código identificado.
+alertas[1]:
+  - Data de emissão fora do período
 Use exatamente as chaves pedidas (identificadores), não os rótulos.
 Use a descrição do template como contexto para interpretar a finalidade e os rótulos dos campos, não como evidência do conteúdo do PDF.
 Extraia os campos que estiverem presentes mesmo quando o documento não atender a uma ou mais regras. Para campos ausentes, use "".
 Não invente CPF, datas ou valores numéricos críticos.`,
-    `${descricaoTemplate ? `Descrição do template: ${descricaoTemplate}\n\n` : ''}Campos (chaves): ${JSON.stringify(campos)}\nRótulos: ${JSON.stringify(rotulos || {})}\nRegras: ${JSON.stringify(regras)}\n\nTexto do documento:\n${texto}`
+    `${descricaoTemplate ? `Descrição do template: ${descricaoTemplate}\n\n` : ''}Campos (chaves) em TOON:
+${blocoToon(campos)}
+Rótulos em TOON:
+${blocoToon(rotulos || {})}
+Regras em TOON:
+${blocoToon(regras)}
+
+Texto do documento:
+${texto}`
   )
 
   const parsed = extracaoIaSchema.safeParse(raw)
@@ -217,15 +252,17 @@ const analiseTemplateSchema = z.object({
   regras: z.array(z.unknown()).optional().default([]),
 })
 
+const campoOpcional = z.string().nullish().transform((valor) => valor ?? undefined)
+
 const sugestaoTemplateSchema = z.object({
   tipoDocumento: z.string(),
   confianca: z.number().min(0).max(1),
-  templateExistenteId: z.string().optional(),
-  templateExistenteNome: z.string().optional(),
+  templateExistenteId: campoOpcional,
+  templateExistenteNome: campoOpcional,
   razao: z.string(),
   sugerirNovoTemplate: z.boolean(),
-  nomeSugerido: z.string().optional(),
-  descricaoSugerida: z.string().optional(),
+  nomeSugerido: campoOpcional,
+  descricaoSugerida: campoOpcional,
 })
 
 export async function sugerirTemplateParaDocumento(
@@ -250,29 +287,35 @@ export async function sugerirTemplateParaDocumento(
     }
   }
 
-  const templatesInfo = templatesExistentes.map(t => 
-    `- ${t.id}: ${t.nome}${t.categoria ? ` (${t.categoria})` : ''}${t.descricao ? ` - ${t.descricao}` : ''}`
-  ).join('\n')
+  const templatesParaIa = templatesExistentes.map(t => ({
+    id: t.id,
+    nome: t.nome,
+    categoria: t.categoria || '',
+    descricao: t.descricao || '',
+  }))
 
   try {
-    const raw = await groqJson<unknown>(
+    const raw = await groqToon<unknown>(
       `Você classifica um documento PDF e sugere qual template de validação usar.
-Responda APENAS JSON:
-{
-  "tipoDocumento": "nome do tipo detectado (ex: Nota Fiscal, Contrato, Laudo, Plano de Curso)",
-  "confianca": 0.95,
-  "templateExistenteId": "uuid do template existente ou null",
-  "templateExistenteNome": "nome do template existente ou null",
-  "razao": "explicação curta da classificação",
-  "sugerirNovoTemplate": false,
-  "nomeSugerido": "nome para novo template se sugerirNovoTemplate for true",
-  "descricaoSugerida": "descrição para novo template"
-}
+${TOON_INSTRUCAO} Exemplo de resposta:
+tipoDocumento: Laudo Técnico
+confianca: 0.45
+templateExistenteId: null
+templateExistenteNome: null
+razao: Sem template compatível entre os existentes.
+sugerirNovoTemplate: true
+nomeSugerido: Laudo Técnico
+descricaoSugerida: Validação de laudo técnico com perícia e assinatura
 Regras:
 - Se houver template existente com confiança > 0.8, use-o (sugerirNovoTemplate: false)
 - Se não houver match claro, sugira novo template (sugerirNovoTemplate: true)
-- Confiança entre 0 e 1`,
-      `Templates existentes:\n${templatesInfo || '(nenhum)'}\n\nTexto do documento (início):\n${texto.slice(0, 3000)}`
+- Confiança entre 0 e 1
+- Use null nos campos de template quando sugerirNovoTemplate for true`,
+      `Templates existentes em TOON:
+${templatesParaIa.length ? blocoToon(templatesParaIa) : '(nenhum)'}
+
+Texto do documento (início):
+${texto.slice(0, 3000)}`
     )
     const parsed = sugestaoTemplateSchema.safeParse(raw)
     if (!parsed.success) throw new Error('Resposta inválida da IA')
@@ -299,10 +342,11 @@ export async function explicarFalhaRegra(
 ): Promise<string> {
   if (!isGroqConfigured()) return ''
   try {
-    const raw = await groqJson<unknown>(
+    const raw = await groqToon<unknown>(
       `Você explica em português claro por que uma regra de validação documental falhou.
-Responda APENAS JSON: { "explicacao": "frase curta e direta" }
-Máximo 160 caracteres. Sem jargão técnico. Exemplo: "O CPF informado (123.456.789-00) tem dígito verificador inválido."`,
+${TOON_INSTRUCAO} Exemplo de resposta:
+explicacao: O CPF informado (123.456.789-00) tem dígito verificador inválido.
+Máximo 160 caracteres. Sem jargão técnico.`,
       `Regra: ${regraNome} (${regraTipo})
 Critério avaliado: ${criterio}
 Valor encontrado no documento: ${valorEncontrado || '(vazio)'}`
@@ -319,27 +363,29 @@ export async function analisarTemplateComIa(
   textoDocumento?: string,
   descricaoTemplate?: string
 ) {
-  const raw = await groqJson<unknown>(
+  const raw = await groqToon<unknown>(
     `Você analisa um template de validação documental e sugere melhorias.
-Responda APENAS JSON:
-{
-  "resumo": "avaliação das regras atuais",
-  "alertas": ["lacunas, regex frágeis, campos faltando"],
-  "regras": [
-    {
-      "nome": "string",
-      "tipo": "campo_obrigatorio" | "formato" | "intervalo" | "calculo",
-      "obrigatoria": true,
-      "parametros": {}
-    }
-  ]
-}
+${TOON_INSTRUCAO}
+Cada regra tem nome, tipo (campo_obrigatorio, formato, intervalo ou calculo), obrigatoria e parametros. Exemplo de resposta:
+resumo: Regras cobrem identificação, mas não validam valores.
+alertas[2]:
+  - Falta regra de intervalo para valor total
+  - Regex de data não trata valor vazio
+regras[1]:
+  - nome: Valor total
+    tipo: intervalo
+    obrigatoria: true
+    parametros:
+      campo: Valor total
+      min: 0
+      max: 999999
 Só sugira regras NOVAS, que ainda não existam. Use a descrição como contexto sobre a finalidade e os requisitos do template.
 Se o texto do documento vier, compare-o com a descrição e as regras atuais para identificar campos ou requisitos relevantes que ainda não estejam cobertos.
 Um documento de exemplo pode não cumprir todos os requisitos; isso não impede a análise nem significa que a extração falhou.`,
     `Descrição do template: ${descricaoTemplate || '(não informada)'}
 
-Regras atuais: ${JSON.stringify(regrasAtuais)}
+Regras atuais em TOON:
+${blocoToon(regrasAtuais)}
 
 Texto do documento (opcional):
 ${textoDocumento || '(não enviado)'}`
