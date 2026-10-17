@@ -4,7 +4,7 @@ import { useTemplateStore } from '../../stores/template'
 import { useDocumentStore } from '../../stores/document'
 import { documentService } from '../../services/documentService'
 import { analiseAprovada, analisePendente, analiseReprovada } from '../../utils/analiseStatus'
-import type { AnaliseIa, Documento } from '../../types'
+import type { Documento, ResumoExtracao } from '../../types'
 import FileDropzone from '../upload/FileDropzone.vue'
 import UploadProgress from '../upload/UploadProgress.vue'
 import BaseButton from '../ui/BaseButton.vue'
@@ -29,10 +29,10 @@ let timer: number | undefined
 const canSend = computed(() => !!templateId.value && !!file.value && !sending.value && !analyzing.value)
 const approved = computed(() => analiseAprovada(result.value))
 const rejected = computed(() => analiseReprovada(result.value))
-const analiseIa = computed(() => {
+const resumoExtracao = computed(() => {
   const raw = result.value?.dadosExtraidos?._analiseIa
   if (!raw || typeof raw !== 'object') return undefined
-  return raw as AnaliseIa
+  return raw as ResumoExtracao
 })
 const assinaturaGov = computed(() => assinaturaGovFromDados(result.value?.dadosExtraidos))
 
@@ -133,11 +133,8 @@ async function send() {
           <p v-else-if="rejected" class="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-800">Documento reprovado na análise automática.</p>
           <p v-else class="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Análise em andamento ou aguardando revisão humana.</p>
           <GovBrSignatureCard v-if="assinaturaGov" :resultado="assinaturaGov" />
-          <div v-if="analiseIa" class="text-sm">
-            <p v-if="analiseIa.resumo"><span class="font-semibold">IA:</span> {{ analiseIa.resumo }}</p>
-            <ul v-if="analiseIa.alertas?.length" class="mt-2 list-disc pl-5 text-amber-800">
-              <li v-for="alerta in analiseIa.alertas" :key="alerta">{{ alerta }}</li>
-            </ul>
+          <div v-if="resumoExtracao?.resumo" class="text-sm">
+            <p><span class="font-semibold">Extração:</span> {{ resumoExtracao.resumo }}</p>
           </div>
           <ValidationResults :results="result.validacoes?.flatMap((item) => item.resultadosRegra || [])" />
           <RouterLink :to="`/documentos/${result.id}`" class="inline-block text-sm font-semibold text-primary">Ver detalhes</RouterLink>

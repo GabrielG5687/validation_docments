@@ -1,9 +1,21 @@
 import { RegraValidacao } from '@prisma/client'
 import { normalizarData } from './extracao/normalizadores'
 
+export type StatusRegra =
+  | 'aprovado'
+  | 'nao_conforme'
+  | 'nao_encontrado'
+  | 'extracao_conflitante'
+  | 'nao_verificavel'
+
+export interface FonteCampo {
+  status: 'validado' | 'ambiguo' | 'sem_evidencia' | 'conflito' | 'corrigido_humano'
+  temValor: boolean
+}
+
 export interface ResultadoInput {
   regraId: string
-  status: 'aprovado' | 'reprovado'
+  status: StatusRegra
   valorEncontrado?: string
   criterio: string
   explicacaoIa?: string
@@ -20,10 +32,43 @@ function paramsOf(regra: RegraValidacao): Params {
 function result(regra: RegraValidacao, ok: boolean, value: unknown, criterio: string): ResultadoInput {
   return {
     regraId: regra.id,
-    status: ok ? 'aprovado' : 'reprovado',
+    status: ok ? 'aprovado' : 'nao_conforme',
     valorEncontrado: value === undefined || value === null ? undefined : String(value),
     criterio,
   }
+}
+
+/** Campos usados por uma regra: o campo principal ou, no cálculo, as referências da expressão e o resultado. */
+function camposRelevantes(regra: RegraValidacao, params: Params): string[] {
+  if (regra.tipo === 'calculo') {
+    const identificadores = String(params.expressao ?? '').match(/[A-Za-z_][A-Za-z0-9_]*/g) ?? []
+    const resultado = typeof params.campo_resultado === 'string' ? [params.campo_resultado] : []
+    return [...new Set([...resultado, ...identificadores])]
+  }
+  return typeof params.campo === 'string' ? [params.campo] : []
+}
+
+function temValorConfirmado(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0
+}
+
+/** Distingue ausência real de extração ambígua, conflitante ou sem evidência. */
+function classificarPendencia(campos: string[], fontes: Record<string, FonteCampo>): StatusRegra {
+  const relevantes = campos
+    .map((campo) => fontes[campo])
+    .filter((fonte): fonte is FonteCampo => Boolean(fonte))
+  if (relevantes.some((fonte) => fonte.status === 'conflito')) return 'extracao_conflitante'
+  if (relevantes.some((fonte) => fonte.status === 'ambiguo' || (fonte.status === 'sem_evidencia' && fonte.temValor))) {
+    return 'nao_verificavel'
+  }
+  return 'nao_encontrado'
+}
+
+function criterioPendencia(status: StatusRegra, campos: string[]): string {
+  const lista = campos.join(', ')
+  if (status === 'extracao_conflitante') return `leitura em conflito para: ${lista}`
+  if (status === 'nao_verificavel') return `valor sem evidência verificável para: ${lista}`
+  return `campo não encontrado: ${lista}`
 }
 
 /**
@@ -108,17 +153,29 @@ function pareceData(fonte: string): boolean {
   return /\\d\{2\}/.test(fonte) && /\\d\{4\}/.test(fonte)
 }
 
-export function aplicarRegra(regra: RegraValidacao, dados: Record<string, string>): ResultadoInput {
+export function aplicarRegra(
+  regra: RegraValidacao,
+  dados: Record<string, string>,
+  fontes: Record<string, FonteCampo> = {},
+): ResultadoInput {
   const params = paramsOf(regra)
+  const campos = camposRelevantes(regra, params)
+  if (campos.length === 0) {
+    return { regraId: regra.id, status: 'nao_verificavel', criterio: 'regra sem campo configurado' }
+  }
+  const faltando = campos.filter((campo) => !temValorConfirmado(dados[campo]))
+  if (faltando.length > 0) {
+    const status = classificarPendencia(faltando, fontes)
+    return { regraId: regra.id, status, criterio: criterioPendencia(status, faltando) }
+  }
+
   if (regra.tipo === 'campo_obrigatorio') {
     const campo = String(params.campo ?? '')
-    const value = dados[campo]
-    return result(regra, typeof value === 'string' && value.trim().length > 0, value, 'campo presente e não vazio')
+    return result(regra, true, dados[campo], 'campo presente e não vazio')
   }
   if (regra.tipo === 'formato') {
     const campo = String(params.campo ?? '')
     const value = dados[campo]
-    if (typeof value !== 'string') return result(regra, false, value, `regex: ${String(params.regex ?? '')}`)
     try {
       const fonte = corrigirRegexData(String(params.regex ?? ''))
       const regex = new RegExp(fonte)
@@ -131,7 +188,7 @@ export function aplicarRegra(regra: RegraValidacao, dados: Record<string, string
       }
       return result(regra, false, value, `regex: ${regex.source}`)
     } catch {
-      return result(regra, false, value, 'expressão regular inválida')
+      return { regraId: regra.id, status: 'nao_verificavel', valorEncontrado: value, criterio: 'expressão regular inválida' }
     }
   }
   if (regra.tipo === 'intervalo') {
@@ -140,7 +197,10 @@ export function aplicarRegra(regra: RegraValidacao, dados: Record<string, string
     const number = Number(value)
     const min = Number(params.min)
     const max = Number(params.max)
-    return result(regra, Number.isFinite(number) && number >= min && number <= max, value, `intervalo inclusivo: ${min} a ${max}`)
+    if (!Number.isFinite(number)) {
+      return { regraId: regra.id, status: 'nao_verificavel', valorEncontrado: value, criterio: `valor não numérico para intervalo: ${min} a ${max}` }
+    }
+    return result(regra, number >= min && number <= max, value, `intervalo inclusivo: ${min} a ${max}`)
   }
   const expression = String(params.expressao ?? '')
   const expected = Number(dados[String(params.campo_resultado ?? '')])
@@ -149,7 +209,12 @@ export function aplicarRegra(regra: RegraValidacao, dados: Record<string, string
     const calculated = evaluateExpression(expression, dados)
     return result(regra, Number.isFinite(expected) && Math.abs(calculated - expected) <= tolerance, expected, `cálculo ${calculated}, esperado ${expected} ± ${tolerance}`)
   } catch {
-    return result(regra, false, Number.isFinite(expected) ? expected : undefined, 'expressão de cálculo inválida ou valor ausente')
+    return {
+      regraId: regra.id,
+      status: 'nao_verificavel',
+      valorEncontrado: Number.isFinite(expected) ? String(expected) : undefined,
+      criterio: 'expressão de cálculo inválida',
+    }
   }
 }
 

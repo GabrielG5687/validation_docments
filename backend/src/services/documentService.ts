@@ -3,14 +3,14 @@ import prisma from '../config/prisma'
 import { downloadFile } from './minioService'
 import { BUCKET_DOCUMENTOS } from './minioService'
 import { extrairPaginas } from './pdfService'
-import { aplicarRegra } from './validationService'
+import { aplicarRegra, type FonteCampo } from './validationService'
 import { extrairCamadas } from './extracaoCamposService'
 import { diagnosticarTexto } from './extracao/evidenciaService'
-import { falhaSoInconclusiva, resolverCandidatos } from './extracao/resolverCandidatos'
+import { resolverCandidatos } from './extracao/resolverCandidatos'
 import { parseEstrutura, flattenCampos } from '../utils/estrutura'
 import { validacaoAssinaturaIndisponivel, validarAssinaturasPdf } from './assinatura/signatureValidationService'
 import { calcularValidadeDocumento } from './validadeService'
-import { isGroqConfigured, explicarFalhaRegra } from './groqService'
+import { isGroqConfigured, explicarFalhaRegra, gerarParecerIa } from './groqService'
 
 async function changeStatus(documentoId: string, status: StatusDocumento, usuarioId?: string) {
   const current = await prisma.documento.findUnique({ where: { id: documentoId }, select: { status: true } })
@@ -106,9 +106,8 @@ export async function processarDocumento(documentoId: string): Promise<void> {
       iaStatus: extraido.iaStatus,
     })
     const dados: Record<string, unknown> = { ...resolvido.confirmados, _extracao: { ...resolvido.extracao, iaStatus: extraido.iaStatus } }
-    let observacaoIa = extraido.resumo || ''
-    if (extraido.resumo || extraido.alertas?.length) {
-      dados._analiseIa = { resumo: extraido.resumo || '', alertas: extraido.alertas || [] }
+    if (extraido.resumo) {
+      dados._analiseIa = { resumo: extraido.resumo }
     }
     // Flag para priorizar revisão humana se IA falhou
     if (extraido.iaStatus !== 'sucesso' && extraido.iaStatus !== 'nao_aplicada') {
@@ -137,68 +136,91 @@ export async function processarDocumento(documentoId: string): Promise<void> {
           const campo = typeof params.campo === 'string' ? params.campo : ''
           const mencionaAssinatura = `${campo} ${regra.nome}`.toLowerCase().includes('assinatura')
           const pareceData = `${campo} ${regra.nome}`.toLowerCase().includes('data')
-          if (regra.tipo !== 'campo_obrigatorio' || !campo || !mencionaAssinatura || pareceData || camposParaRegras[campo]?.trim()) continue
+          const exigeVisual = params.assinatura === 'visual'
+          if (regra.tipo !== 'campo_obrigatorio' || !campo || !mencionaAssinatura || pareceData || exigeVisual || camposParaRegras[campo]?.trim()) continue
           camposParaRegras[campo] = assinante
           dados[campo] = assinante
         }
       }
     }
 
+    const fontes: Record<string, FonteCampo> = {}
+    for (const campo of resolvido.extracao.campos) {
+      fontes[campo.chave] = { status: campo.status, temValor: Boolean(campo.valorBruto && campo.valorBruto.trim()) }
+    }
+
     const validade = calcularValidadeDocumento(dados, documento.template.validadeDias)
 
     await changeStatus(documentoId, 'aguardando_validacao')
-    const resultados = documento.template.regras.map((regra) => aplicarRegra(regra, camposParaRegras))
+    const resultados = documento.template.regras.map((regra) => aplicarRegra(regra, camposParaRegras, fontes))
 
-    // Gerar explicações em linguagem natural para regras reprovadas (se IA configurada)
+    // Gerar explicações em linguagem natural para regras não conformes (se IA configurada)
     if (isGroqConfigured()) {
       for (let i = 0; i < resultados.length; i++) {
         const resultado = resultados[i]
-        if (resultado.status === 'reprovado') {
-          const regra = documento.template.regras[i]
-          const explicacao = await explicarFalhaRegra(
-            regra.nome,
-            regra.tipo,
-            resultado.criterio,
-            resultado.valorEncontrado ?? ''
-          )
-          if (explicacao) {
-            resultado.explicacaoIa = explicacao
-          }
-        }
+        if (resultado.status !== 'nao_conforme') continue
+        const regra = documento.template.regras[i]
+        const explicacao = await explicarFalhaRegra(regra.nome, regra.tipo, resultado.criterio, resultado.valorEncontrado ?? '')
+        if (explicacao) resultado.explicacaoIa = explicacao
       }
     }
 
-    const falhaObrigatoria = documento.template.regras.some((regra, i) => regra.obrigatoria && resultados[i].status === 'reprovado')
-    const soInconclusivo = falhaSoInconclusiva(documento.template.regras, resultados, resolvido.inconclusivos)
-    const resultado = falhaObrigatoria && !soInconclusivo ? 'reprovado' : 'aprovado'
-    const novoStatus = falhaObrigatoria && !soInconclusivo ? 'reprovado_automatico' : 'aguardando_revisao'
+    const obrigatorias = documento.template.regras
+      .map((regra, index) => ({ regra, resultado: resultados[index] }))
+      .filter((item) => item.regra.obrigatoria)
+    const naoConformes = obrigatorias.filter((item) => item.resultado.status === 'nao_conforme')
+    const pendencias = obrigatorias.filter((item) =>
+      item.resultado.status === 'nao_encontrado'
+      || item.resultado.status === 'extracao_conflitante'
+      || item.resultado.status === 'nao_verificavel'
+    )
+
+    let resultado: 'aprovado' | 'reprovado' | 'inconclusivo'
+    let novoStatus: StatusDocumento
+    if (naoConformes.length > 0) {
+      resultado = 'reprovado'
+      novoStatus = 'reprovado_automatico'
+    } else if (pendencias.length > 0) {
+      resultado = 'inconclusivo'
+      novoStatus = 'aguardando_revisao'
+    } else {
+      resultado = 'aprovado'
+      novoStatus = 'aguardando_revisao'
+    }
     const validatorId = await systemValidatorId()
 
-    // Construir descrição detalhada dos pontos de falha
-    const regrasReprovadas = resultados
-      .map((r, i) => ({ resultado: r, regra: documento.template.regras[i] }))
-      .filter(({ resultado }) => resultado.status === 'reprovado')
-
+    // Descrição detalhada apenas do que foi comprovado (não conformes) ou do que ficou pendente
     let observacoes = ''
-    if (falhaObrigatoria && !soInconclusivo) {
+    if (naoConformes.length > 0) {
       const linhas = ['Documento reprovado automaticamente. Pontos não conformes:']
-      for (const { resultado, regra } of regrasReprovadas) {
-        const detalhe = resultado.explicacaoIa || `${regra.nome}: valor "${resultado.valorEncontrado ?? 'ausente'}" não atende ao critério (${resultado.criterio})`
+      for (const { resultado: item, regra } of naoConformes) {
+        const detalhe = item.explicacaoIa || `${regra.nome}: valor "${item.valorEncontrado ?? 'ausente'}" não atende ao critério (${item.criterio})`
         linhas.push(`• ${detalhe}`)
       }
       observacoes = linhas.join('\n')
-    } else if (soInconclusivo) {
-      observacoes = 'Há campos sem evidência verificável ou em conflito. A aprovação automática foi retida.'
-      if (regrasReprovadas.length) {
-        observacoes += '\n\nRegras com falha:'
-        for (const { resultado, regra } of regrasReprovadas) {
-          const detalhe = resultado.explicacaoIa || `${regra.nome}: ${resultado.criterio}`
-          observacoes += `\n• ${detalhe}`
-        }
+    } else if (pendencias.length > 0) {
+      const linhas = ['Análise inconclusiva. Itens sem comprovação que impedem a aprovação automática:']
+      for (const { resultado: item, regra } of pendencias) {
+        linhas.push(`• ${regra.nome}: ${item.criterio}`)
       }
-    } else if (observacaoIa) {
-      observacoes = observacaoIa
+      observacoes = linhas.join('\n')
     }
+
+    const parecerIa = await gerarParecerIa({
+      documentoNome: documento.nomeArquivo,
+      templateNome: documento.template.nome,
+      resultados: documento.template.regras.map((regra, index) => ({
+        nome: regra.nome,
+        tipo: regra.tipo,
+        status: resultados[index].status,
+        valorEncontrado: resultados[index].valorEncontrado,
+        criterio: resultados[index].criterio,
+        obrigatoria: regra.obrigatoria,
+      })),
+      pendencias: resolvido.extracao.campos
+        .filter((campo) => campo.status !== 'validado' && campo.status !== 'corrigido_humano')
+        .map((campo) => ({ chave: campo.chave, rotulo: rotulos[campo.chave], status: campo.status })),
+    })
 
     await prisma.$transaction(async (tx) => {
       await tx.documento.update({
@@ -219,6 +241,7 @@ export async function processarDocumento(documentoId: string): Promise<void> {
           validadorId: validatorId,
           resultado,
           observacoes: observacoes || null,
+          parecerIa: parecerIa ? JSON.stringify(parecerIa) : null,
           resultadosRegra: {
           create: resultados.map((item) => ({
             regraId: item.regraId,

@@ -164,7 +164,7 @@ Regras de parametros:
 - formato: parametros.campo e parametros.regex (expressão regular)
 - Data brasileira: use exatamente ^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\\d{4}$
 - Nunca escreva dd, mm ou aaaa como texto dentro da regex.
-- Campo de assinatura digital (orientador, responsável, signatário) deve ser campo_obrigatorio. O valor vem do certificado, não de uma linha do texto.
+- Campo de assinatura digital (orientador, responsável, signatário) deve ser campo_obrigatorio. O valor vem do certificado, não de uma linha do texto. Em parametros.assinatura use criptografica (aceita o certificado), visual (exige linha no texto) ou qualquer (padrão).
 - intervalo: parametros.campo, parametros.min (número) e parametros.max (número)
 - calculo: parametros.expressao ("A+B"), parametros.campo_resultado e parametros.tolerancia (número)
 Use nomes de campo iguais aos rótulos do documento. No máximo 12 regras. Prefira campo_obrigatorio e formato.
@@ -194,7 +194,6 @@ ${texto}`
 const extracaoIaSchema = z.object({
   campos: z.record(z.union([z.string(), z.number(), z.boolean()])).optional().default({}),
   resumo: z.string().optional().default(''),
-  alertas: z.array(z.string()).optional().default([]),
 })
 
 export async function extrairEAnalisarDocumento(
@@ -205,14 +204,12 @@ export async function extrairEAnalisarDocumento(
   descricaoTemplate?: string
 ) {
   const raw = await groqToon<unknown>(
-    `Você extrai campos e analisa um documento contra regras de um template.
+    `Você extrai campos de um documento PDF.
 ${TOON_INSTRUCAO} Exemplo de resposta:
 campos:
   codigo_verificacao: 6065c033f2
   data_emissao: ""
 resumo: Código identificado.
-alertas[1]:
-  - Data de emissão fora do período
 Use exatamente as chaves pedidas (identificadores), não os rótulos.
 Use a descrição do template como contexto para interpretar a finalidade e os rótulos dos campos, não como evidência do conteúdo do PDF.
 Extraia os campos que estiverem presentes mesmo quando o documento não atender a uma ou mais regras. Para campos ausentes, use "".
@@ -230,7 +227,7 @@ ${texto}`
 
   const parsed = extracaoIaSchema.safeParse(raw)
   if (!parsed.success) {
-    return { campos: {} as Record<string, string>, resumo: '', alertas: [] as string[] }
+    return { campos: {} as Record<string, string>, resumo: '' }
   }
 
   const camposNormalizados: Record<string, string> = {}
@@ -242,7 +239,6 @@ ${texto}`
   return {
     campos: camposNormalizados,
     resumo: parsed.data.resumo.trim(),
-    alertas: parsed.data.alertas.map((item) => item.trim()).filter(Boolean),
   }
 }
 
@@ -398,5 +394,85 @@ ${textoDocumento || '(não enviado)'}`
     resumo: parsed.data.resumo.trim(),
     alertas: parsed.data.alertas.map((item) => item.trim()).filter(Boolean),
     regrasSugeridas: sanitizeRegrasSugeridas(parsed.data.regras),
+  }
+}
+
+const parecerIaSchema = z.object({
+  analise: z.string().optional().default(''),
+  pendencias: z.array(z.string()).optional().default([]),
+  conclusao: z.string().optional().default(''),
+})
+
+export interface ParecerIa {
+  analise: string
+  pendencias: string[]
+  conclusao: string
+}
+
+export interface ParecerIaEntrada {
+  documentoNome: string
+  templateNome?: string
+  resultados: Array<{
+    nome: string
+    tipo: string
+    status: string
+    valorEncontrado?: string
+    criterio: string
+    obrigatoria: boolean
+  }>
+  pendencias: Array<{ chave: string; rotulo?: string; status: string }>
+}
+
+export async function gerarParecerIa(entrada: ParecerIaEntrada): Promise<ParecerIa | null> {
+  if (!isGroqConfigured() || entrada.resultados.length === 0) return null
+
+  const comprovadas = entrada.resultados.filter(
+    (item) => item.status === 'aprovado' || item.status === 'nao_conforme'
+  )
+
+  try {
+    const raw = await groqToon<unknown>(
+      `Você redige um parecer técnico resumido sobre a validação automática de um documento.
+${TOON_INSTRUCAO} Exemplo de resposta:
+analise: Os campos obrigatórios estão presentes e o CPF confere.
+pendencias[1]:
+  - Assinatura do orientador sem evidência verificável no texto
+conclusao: Aprovado automaticamente, sem pendências.
+Regras de redação:
+- Use SOMENTE os dados fornecidos abaixo. Não invente valores, páginas ou fatos.
+- Não afirme que o documento foi reprovado; a decisão final é humana.
+- "analise" descreve o que foi comprovado, citando o valor quando houver.
+- "pendencias" lista apenas itens que impedem a conclusão (não encontrado, conflito ou sem evidência).
+- "conclusao" diz se pode ser aprovado automaticamente ou se depende de revisão humana.
+- Português claro, objetivo, sem jargão técnico.`,
+      `Documento: ${entrada.documentoNome}
+${entrada.templateNome ? `Template: ${entrada.templateNome}\n` : ''}
+Resultados comprovados das regras em TOON:
+${comprovadas.length
+  ? blocoToon(comprovadas.map((item) => ({
+      regra: item.nome,
+      tipo: item.tipo,
+      status: item.status,
+      valor: item.valorEncontrado || '',
+      criterio: item.criterio,
+      obrigatoria: item.obrigatoria,
+    })))
+  : '(nenhum)'}
+
+Campos inconclusivos em TOON:
+${entrada.pendencias.length
+  ? blocoToon(entrada.pendencias.map((item) => ({ campo: item.rotulo || item.chave, status: item.status })))
+  : '(nenhum)'}`
+    )
+
+    const parsed = parecerIaSchema.safeParse(raw)
+    if (!parsed.success) return null
+    return {
+      analise: parsed.data.analise.trim(),
+      pendencias: parsed.data.pendencias.map((item) => item.trim()).filter(Boolean),
+      conclusao: parsed.data.conclusao.trim(),
+    }
+  } catch {
+    return null
   }
 }

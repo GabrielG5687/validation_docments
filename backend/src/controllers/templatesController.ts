@@ -573,7 +573,6 @@ export async function testarTemplate(
     const manuais = onlyFilled(parsed.data.valores)
     let extraidos: Record<string, string> = {}
     let resumo: string | undefined
-    let alertas: string[] | undefined
 
     if (req.file) {
       const pdf = pdfFromRequest(req.file)
@@ -606,7 +605,6 @@ export async function testarTemplate(
       })
       extraidos = extraido.valores
       resumo = extraido.resumo
-      alertas = extraido.alertas
     }
 
     const valores: Record<string, string> = { ...extraidos, ...manuais }
@@ -630,18 +628,18 @@ export async function testarTemplate(
         }
       })
 
-    const falhaObrigatoria = ativos.some((regra, index) => regra.obrigatoria && resultados[index].status === 'reprovado')
+    const falhaObrigatoria = ativos.some((regra, index) => regra.obrigatoria && resultados[index].status === 'nao_conforme')
+    const pendenciaObrigatoria = ativos.some((regra, index) => regra.obrigatoria && ['nao_encontrado', 'extracao_conflitante', 'nao_verificavel'].includes(resultados[index].status))
     const aprovadas = resultados.filter((item) => item.status === 'aprovado').length
-    const reprovadas = resultados.length - aprovadas
+    const reprovadas = resultados.filter((item) => item.status === 'nao_conforme').length
 
     res.status(200).json({
-      resultado: falhaObrigatoria ? 'reprovado' : 'aprovado',
+      resultado: falhaObrigatoria ? 'reprovado' : pendenciaObrigatoria ? 'inconclusivo' : 'aprovado',
       aprovadas,
       reprovadas,
       valores,
       resultados,
       resumo,
-      alertas,
     })
   } catch (err) {
     if (err instanceof SyntaxError) {

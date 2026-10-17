@@ -70,7 +70,7 @@ export async function extrairValoresDeDocumento(opts: {
   regras: Array<{ nome: string; tipo: string; parametros: unknown }>
   documentoId?: string
   descricaoTemplate?: string
-}): Promise<{ valores: Record<string, string>; resumo?: string; alertas?: string[]; iaStatus: IaExtracaoStatus }> {
+}): Promise<{ valores: Record<string, string>; resumo?: string; iaStatus: IaExtracaoStatus }> {
   const { texto, chaves, rotulos = {}, regras, documentoId, descricaoTemplate } = opts
   const uniqueChaves = [...new Set(chaves.filter(Boolean))]
   const aliases = [...new Set(uniqueChaves.flatMap((chave) => [chave, rotulos[chave]].filter(Boolean)))]
@@ -83,7 +83,6 @@ export async function extrairValoresDeDocumento(opts: {
   }
 
   let resumo: string | undefined
-  let alertas: string[] | undefined
   let iaStatus: IaExtracaoStatus = 'nao_aplicada'
 
   if (uniqueChaves.length > 0 && texto.trim()) {
@@ -104,13 +103,12 @@ export async function extrairValoresDeDocumento(opts: {
         }
       }
       resumo = analise.resumo || undefined
-      alertas = analise.alertas.length ? analise.alertas : undefined
     } else if (!resultado.sucesso) {
       console.warn('[Extracao] IA falhou após retentativas', { documentoId, erro: resultado.erro, iaStatus })
     }
   }
 
-  return { valores, resumo, alertas, iaStatus }
+  return { valores, resumo, iaStatus }
 }
 
 export async function extrairCamadas(opts: {
@@ -124,7 +122,6 @@ export async function extrairCamadas(opts: {
   regex: Record<string, string>
   ia: Record<string, string>
   resumo?: string
-  alertas?: string[]
   iaStatus: IaExtracaoStatus
 }> {
   const { paginas, chaves, rotulos = {}, regras, documentoId, descricaoTemplate } = opts
@@ -163,7 +160,6 @@ export async function extrairCamadas(opts: {
       regex,
       ia,
       resumo: analise.resumo || undefined,
-      alertas: analise.alertas.length ? analise.alertas : undefined,
       iaStatus,
     }
   }

@@ -17,7 +17,7 @@ import EvidenciasExtraidas from '../../components/document/EvidenciasExtraidas.v
 import ExtractionErrorNotice from '../../components/document/ExtractionErrorNotice.vue'
 import { documentService } from '../../services/documentService'
 import { useAuthStore } from '../../stores/auth'
-import type { AnaliseIa } from '../../types'
+import type { ParecerIa, ResumoExtracao } from '../../types'
 import { analiseAprovada } from '../../utils/analiseStatus'
 import { assinaturaGovFromDados } from '../../utils/assinaturaGov'
 
@@ -32,11 +32,30 @@ const reviewing = ref(false)
 const observacoes = ref('')
 const reviewError = ref('')
 
-const analiseIa = computed(() => {
+const resumoExtracao = computed(() => {
   const raw = store.documentoAtual?.dadosExtraidos?._analiseIa
   if (!raw || typeof raw !== 'object') return undefined
-  return raw as AnaliseIa
+  return raw as ResumoExtracao
 })
+
+const parecerIa = computed<ParecerIa | undefined>(() => {
+  const validacoes = store.documentoAtual?.validacoes || []
+  for (const validacao of validacoes) {
+    if (!validacao.parecerIa) continue
+    try {
+      return JSON.parse(validacao.parecerIa) as ParecerIa
+    } catch {
+      return undefined
+    }
+  }
+  return undefined
+})
+
+function rotuloResultado(resultado: 'aprovado' | 'reprovado' | 'inconclusivo') {
+  if (resultado === 'aprovado') return 'Parecer aprovado'
+  if (resultado === 'reprovado') return 'Parecer reprovado'
+  return 'Parecer inconclusivo'
+}
 
 const assinaturaGov = computed(() => assinaturaGovFromDados(store.documentoAtual?.dadosExtraidos))
 
@@ -187,18 +206,23 @@ async function revalidateSignature() {
             <BaseButton class="mt-3" variant="secondary" :loading="revalidating" @click="revalidateSignature">Validar assinatura</BaseButton>
           </section>
           <EvidenciasExtraidas :dados="store.documentoAtual.dadosExtraidos" />
-          <section v-if="analiseIa" class="card">
-            <h2 class="mb-4 text-lg font-bold">Análise da IA</h2>
-            <p v-if="analiseIa.resumo" class="text-sm text-slate-700">{{ analiseIa.resumo }}</p>
-            <ul v-if="analiseIa.alertas?.length" class="mt-3 list-disc space-y-1 pl-5 text-sm text-amber-800">
-              <li v-for="alerta in analiseIa.alertas" :key="alerta">{{ alerta }}</li>
+          <section v-if="resumoExtracao?.resumo" class="card">
+            <h2 class="mb-4 text-lg font-bold">Resumo da extração</h2>
+            <p class="text-sm text-slate-700">{{ resumoExtracao.resumo }}</p>
+          </section>
+          <section v-if="parecerIa" class="card">
+            <h2 class="mb-4 text-lg font-bold">Parecer da IA</h2>
+            <p v-if="parecerIa.analise" class="text-sm text-slate-700">{{ parecerIa.analise }}</p>
+            <ul v-if="parecerIa.pendencias?.length" class="mt-3 list-disc space-y-1 pl-5 text-sm text-amber-800">
+              <li v-for="pendencia in parecerIa.pendencias" :key="pendencia">{{ pendencia }}</li>
             </ul>
+            <p v-if="parecerIa.conclusao" class="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800">{{ parecerIa.conclusao }}</p>
           </section>
           <section class="card">
             <h2 class="mb-4 text-lg font-bold">Resultados de validação</h2>
             <ValidationResults :results="store.documentoAtual.validacoes?.flatMap((v) => v.resultadosRegra || [])" />
             <div v-for="validation in store.documentoAtual.validacoes || []" :key="validation.id" class="mt-4 border-t pt-4 text-sm">
-              <p class="font-semibold">{{ validation.resultado === 'aprovado' ? 'Parecer aprovado' : 'Parecer reprovado' }}</p>
+              <p class="font-semibold">{{ rotuloResultado(validation.resultado) }}</p>
               <p class="mt-1 text-slate-600">{{ validation.observacoes || 'Sem observações' }}</p>
               <p class="mt-1 text-xs text-slate-500">{{ formatDate(validation.criadoEm) }}</p>
             </div>

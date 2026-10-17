@@ -3,6 +3,7 @@ import { encode } from '@toon-format/toon'
 import {
   analisarTemplateComIa,
   extrairEAnalisarDocumento,
+  gerarParecerIa,
   gerarTemplateComIa,
 } from './groqService'
 
@@ -139,5 +140,39 @@ describe('groqService template context', () => {
     expect(template.nome).toBe('Diário')
     expect(template.regras).toHaveLength(1)
     expect(template.regras[0].parametros.campo).toBe('Código de Verificação')
+  })
+
+  it('gera o parecer da IA apenas com dados comprovados e sem o texto bruto', async () => {
+    vi.stubEnv('GROQ_API_KEY', 'test-key')
+    const requestBodies = mockGroqResponse({
+      analise: 'CPF confere e os campos obrigatórios estão presentes.',
+      pendencias: ['Assinatura do orientador sem evidência verificável'],
+      conclusao: 'Depende de revisão humana.',
+    })
+
+    const parecer = await gerarParecerIa({
+      documentoNome: 'diario.pdf',
+      templateNome: 'Diário',
+      resultados: [
+        { nome: 'CPF', tipo: 'formato', status: 'aprovado', valorEncontrado: '529.982.247-25', criterio: 'regex', obrigatoria: true },
+        { nome: 'Assinatura', tipo: 'campo_obrigatorio', status: 'nao_verificavel', criterio: 'sem evidência', obrigatoria: true },
+      ],
+      pendencias: [{ chave: 'assinatura', rotulo: 'Assinatura', status: 'sem_evidencia' }],
+    })
+    const prompt = lerPrompt(requestBodies)
+
+    expect(parecer?.pendencias).toHaveLength(1)
+    expect(prompt).toContain('Resultados comprovados das regras em TOON')
+    expect(prompt).toContain('529.982.247-25')
+    expect(prompt).toContain('Não afirme que o documento foi reprovado')
+  })
+
+  it('não chama a IA para o parecer quando não há resultados', async () => {
+    vi.stubEnv('GROQ_API_KEY', 'test-key')
+    mockGroqResponse({ analise: '', pendencias: [], conclusao: '' })
+
+    const parecer = await gerarParecerIa({ documentoNome: 'x.pdf', resultados: [], pendencias: [] })
+
+    expect(parecer).toBeNull()
   })
 })

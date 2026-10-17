@@ -91,21 +91,3 @@ export function resolverCandidatos(input: {
     inconclusivos,
   }
 }
-
-export function falhaSoInconclusiva(
-  regras: Array<{ obrigatoria: boolean; parametros: unknown }>,
-  resultados: Array<{ status: string }>,
-  inconclusivos: string[],
-): boolean {
-  const pendentes = new Set(inconclusivos)
-  let houveFalhaObrigatoria = false
-  let houveFalhaConfirmada = false
-  regras.forEach((regra, index) => {
-    if (!regra.obrigatoria || resultados[index]?.status !== 'reprovado') return
-    houveFalhaObrigatoria = true
-    const params = (regra.parametros && typeof regra.parametros === 'object' ? regra.parametros : {}) as Record<string, unknown>
-    const campo = typeof params.campo === 'string' ? params.campo : typeof params.campo_resultado === 'string' ? params.campo_resultado : ''
-    if (!campo || !pendentes.has(campo)) houveFalhaConfirmada = true
-  })
-  return houveFalhaObrigatoria && !houveFalhaConfirmada
-}

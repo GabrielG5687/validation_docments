@@ -2,7 +2,10 @@ import { z, ZodError } from 'zod'
 import { TipoRegra } from '@prisma/client'
 import { corrigirRegexData } from '../services/validationService'
 
-const campoObrigatorioSchema = z.object({ campo: z.string().min(1, 'campo é obrigatório') })
+const campoObrigatorioSchema = z.object({
+  campo: z.string().min(1, 'campo é obrigatório'),
+  assinatura: z.enum(['criptografica', 'visual', 'qualquer']).optional().default('qualquer'),
+})
 const formatoSchema = z.object({
   campo: z.string().min(1, 'campo é obrigatório'),
   regex: z.string().min(1, 'regex é obrigatório'),

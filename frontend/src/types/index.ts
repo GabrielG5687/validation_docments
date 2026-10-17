@@ -72,25 +72,27 @@ export interface TemplateVersao {
   }
 }
 
+export type StatusRegra = 'aprovado' | 'nao_conforme' | 'nao_encontrado' | 'extracao_conflitante' | 'nao_verificavel'
+
 export interface TesteTemplateResultado {
-  resultado: 'aprovado' | 'reprovado'
+  resultado: 'aprovado' | 'reprovado' | 'inconclusivo'
   aprovadas: number
   reprovadas: number
   valores: Record<string, string>
   resumo?: string
-  alertas?: string[]
   resultados: Array<{
     regraId: string
     nome: string
     tipo: TipoRegra
-    status: 'aprovado' | 'reprovado'
+    status: StatusRegra
     valorEncontrado?: string
     criterio: string
   }>
 }
 
-export interface ResultadoRegra { id: string; validacaoId: string; regraId: string; status: 'aprovado' | 'reprovado'; valorEncontrado?: string; criterio?: string; explicacaoIa?: string; regra?: Pick<RegraValidacao, 'id' | 'nome' | 'tipo'> }
-export interface Validacao { id: string; documentoId: string; validadorId: string; resultado: 'aprovado' | 'reprovado'; observacoes?: string; criadoEm: string; validador?: Pick<Usuario, 'id' | 'nome'>; resultadosRegra?: ResultadoRegra[] }
+export interface ResultadoRegra { id: string; validacaoId: string; regraId: string; status: StatusRegra; valorEncontrado?: string; criterio?: string; explicacaoIa?: string; regra?: Pick<RegraValidacao, 'id' | 'nome' | 'tipo'> }
+export interface ParecerIa { analise: string; pendencias: string[]; conclusao: string }
+export interface Validacao { id: string; documentoId: string; validadorId: string; resultado: 'aprovado' | 'reprovado' | 'inconclusivo'; observacoes?: string; parecerIa?: string | null; criadoEm: string; validador?: Pick<Usuario, 'id' | 'nome'>; resultadosRegra?: ResultadoRegra[] }
 export interface HistoricoStatus { id: string; documentoId: string; statusAnterior?: string; statusNovo: string; usuarioId?: string; criadoEm: string }
 export interface Documento { id: string; usuarioId: string; templateId: string; nomeArquivo: string; hashSha256: string; dadosExtraidos?: Record<string, unknown>; status: StatusDocumento; codigoVerificacao?: string; qrcodeKey?: string; documentoOrigemId?: string; entidadeId?: string; dossieItemId?: string; dataEmissao?: string | null; dataValidade?: string | null; statusValidade?: ValidadeStatus | null; diasParaVencer?: number | null; renovacaoNecessaria?: boolean | null; criadoEm: string; usuario?: Pick<Usuario, 'id' | 'nome' | 'email'>; template?: Pick<Template, 'id' | 'nome'>; entidade?: Pick<Entidade, 'id' | 'nome'>; validacoes?: Validacao[]; historico?: HistoricoStatus[]; presignedUrl?: string; qrcodeUrl?: string }
 export type StatusAssinaturaGov =
@@ -144,6 +146,7 @@ export interface AnaliseIa {
   alertas: string[]
   regrasSugeridas?: Array<Pick<RegraValidacao, 'nome' | 'tipo' | 'parametros' | 'obrigatoria'>>
 }
+export interface ResumoExtracao { resumo?: string }
 export interface DashboardData { perfil: Perfil; contadores?: Record<string, number>; ultimosDocumentos?: Documento[]; [key: string]: unknown }
 export interface ReportData { periodo: { inicio: string; fim: string }; totais: { enviados: number; aprovados: number; reprovados: number; emProcessamento: number; taxaAprovacao: number; tempoMedioHoras: number }; porTemplate: Array<Record<string, string | number>>; porValidador: Array<Record<string, string | number>> }
 

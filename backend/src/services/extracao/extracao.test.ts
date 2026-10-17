@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { verificarEvidencia, diagnosticarTexto, recortarTextoRelevante } from './evidenciaService'
 import { normalizarCpf, normalizarCnpj, normalizarData, normalizarMoeda, normalizarBooleano } from './normalizadores'
-import { falhaSoInconclusiva, resolverCandidatos } from './resolverCandidatos'
-
+import { resolverCandidatos } from './resolverCandidatos'
 const paginas = [
   { numero: 1, texto: 'Nome: Ana Lima\nResponsável: Outra Pessoa' },
   { numero: 2, texto: 'CPF: 529.982.247-25\nValidade: 10/04/2026' },
@@ -55,7 +54,7 @@ describe('resolverCandidatos', () => {
     expect(resolvido.extracao.campos.find((campo) => campo.chave === 'cpf')?.status).toBe('sem_evidencia')
   })
 
-  it('confirma regex com evidência e retém reprovação automática quando só há campo inconclusivo', () => {
+  it('confirma regex com evidência e mantém campo sem evidência como inconclusivo', () => {
     const resolvido = resolverCandidatos({
       chaves: ['cpf'],
       paginas,
@@ -65,15 +64,6 @@ describe('resolverCandidatos', () => {
       iaStatus: 'nao_configurada',
     })
     expect(resolvido.confirmados.cpf).toBe('529.982.247-25')
-    expect(falhaSoInconclusiva(
-      [{ obrigatoria: true, parametros: { campo: 'nome' } }],
-      [{ status: 'reprovado' }],
-      ['nome'],
-    )).toBe(true)
-    expect(falhaSoInconclusiva(
-      [{ obrigatoria: true, parametros: { campo: 'cpf' } }],
-      [{ status: 'reprovado' }],
-      [],
-    )).toBe(false)
+    expect(resolvido.inconclusivos).toEqual([])
   })
 })

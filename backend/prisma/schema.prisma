@@ -167,6 +167,7 @@ model Validacao {
   validadorId     String
   resultado       String
   observacoes     String?
+  parecerIa       String?
   criadoEm        DateTime         @default(now())
   resultadosRegra ResultadoRegra[]
   documento       Documento        @relation(fields: [documentoId], references: [id])
