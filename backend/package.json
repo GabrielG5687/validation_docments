@@ -4,14 +4,15 @@
   "description": "Plataforma de Validação e Verificação de Conformidade Documental — Backend",
   "main": "dist/server.js",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/server.js",
+    "build": "prisma generate && tsc",
+    "start": "prisma migrate deploy && node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio"
   },
   "dependencies": {
@@ -29,6 +30,7 @@
     "multer": "^1.4.5-lts.1",
     "node-forge": "^1.4.0",
     "pdf-parse": "^1.1.1",
+    "prisma": "^5.14.0",
     "qrcode": "^1.5.4",
     "zod": "^3.23.8"
   },
@@ -43,7 +45,6 @@
     "@types/pdf-parse": "^1.1.4",
     "@types/qrcode": "^1.5.5",
     "@types/supertest": "^6.0.2",
-    "prisma": "^5.14.0",
     "supertest": "^7.0.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.4.5",
