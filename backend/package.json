@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Plataforma de Validação e Verificação de Conformidade Documental — Backend",
   "main": "dist/server.js",
   "scripts": {
