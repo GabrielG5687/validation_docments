@@ -1,0 +1,68 @@
+{
+  "nome": "Plano de Curso - SIGAA (testes)",
+  "descricao": "Plano de Curso emitido pelo SIGAA da UNEMAT. Deve trazer identificação da turma (código, nome, carga horária, turma e ano/semestre), horário, pré-requisitos, ementa, docente com matrícula e carga horária, metodologia, procedimentos de avaliação, horário de atendimento, cronograma de aulas, avaliações e referências básicas. Copie os valores exatamente como aparecem no documento. Nos campos de quantidade, conte as linhas da tabela indicada e responda só o número.",
+  "categoria": "Acadêmico",
+  "estrutura": {
+    "secoes": [
+      {
+        "id": "sec-identificacao",
+        "nome": "Identificação da turma",
+        "campos": [
+          {"id": "c-codigo_disciplina", "identificador": "codigo_disciplina", "nome": "Código da disciplina (início do campo Turma, ex.: FACET-SNP-310)", "tipo": "texto", "obrigatorio": true},
+          {"id": "c-nome_disciplina", "identificador": "nome_disciplina", "nome": "Nome da disciplina", "tipo": "texto", "obrigatorio": true},
+          {"id": "c-carga_horaria", "identificador": "carga_horaria", "nome": "Carga horária da disciplina em horas, só o número (valor entre parênteses no campo Turma)", "tipo": "numero", "obrigatorio": true},
+          {"id": "c-turma", "identificador": "turma", "nome": "Número da turma", "tipo": "texto", "obrigatorio": false},
+          {"id": "c-ano_semestre", "identificador": "ano_semestre", "nome": "Ano/semestre entre parênteses no fim do campo Turma (ex.: 2025.1)", "tipo": "texto", "obrigatorio": true},
+          {"id": "c-horario", "identificador": "horario", "nome": "Horário", "tipo": "texto", "obrigatorio": true},
+          {"id": "c-pre_requisitos", "identificador": "pre_requisitos", "nome": "Pré-Requisitos", "tipo": "texto", "obrigatorio": true},
+          {"id": "c-ementa", "identificador": "ementa", "nome": "Ementa (copie as primeiras palavras exatamente como no documento)", "tipo": "texto_longo", "obrigatorio": true}
+        ]
+      },
+      {
+        "id": "sec-docente",
+        "nome": "Docente",
+        "campos": [
+          {"id": "c-matricula_docente", "identificador": "matricula_docente", "nome": "Matrícula do docente", "tipo": "texto", "obrigatorio": true},
+          {"id": "c-docente", "identificador": "docente", "nome": "Nome do docente em Docente(s), sem a carga horária", "tipo": "texto", "obrigatorio": true},
+          {"id": "c-carga_horaria_docente", "identificador": "carga_horaria_docente", "nome": "Carga horária do docente em horas, só o número (após o nome em Docente(s))", "tipo": "numero", "obrigatorio": true}
+        ]
+      },
+      {
+        "id": "sec-metodologia",
+        "nome": "Metodologia e avaliação",
+        "campos": [
+          {"id": "c-metodologia", "identificador": "metodologia", "nome": "Metodologia (copie as primeiras palavras exatamente como no documento)", "tipo": "texto_longo", "obrigatorio": true},
+          {"id": "c-procedimentos_avaliacao", "identificador": "procedimentos_avaliacao", "nome": "Procedimentos de Avaliação da Aprendizagem (copie as primeiras palavras exatamente como no documento)", "tipo": "texto_longo", "obrigatorio": true},
+          {"id": "c-horario_atendimento", "identificador": "horario_atendimento", "nome": "Horário de Atendimento (copie as primeiras palavras exatamente como no documento)", "tipo": "texto", "obrigatorio": true}
+        ]
+      },
+      {
+        "id": "sec-cronograma",
+        "nome": "Cronograma, avaliações e referências",
+        "campos": [
+          {"id": "c-data_primeira_aula", "identificador": "data_primeira_aula", "nome": "Data de início da primeira linha do Cronograma de Aulas", "tipo": "data", "obrigatorio": true},
+          {"id": "c-qtd_aulas_cronograma", "identificador": "qtd_aulas_cronograma", "nome": "Quantidade de linhas da tabela Cronograma de Aulas, só o número", "tipo": "numero", "obrigatorio": true},
+          {"id": "c-data_primeira_avaliacao", "identificador": "data_primeira_avaliacao", "nome": "Data da primeira linha da tabela Avaliações", "tipo": "data", "obrigatorio": true},
+          {"id": "c-referencia_basica", "identificador": "referencia_basica", "nome": "Descrição da primeira linha da tabela Referências Básicas (copie as primeiras palavras exatamente)", "tipo": "texto", "obrigatorio": true}
+        ]
+      }
+    ]
+  },
+  "regras": [
+    {"codigo": "RP01", "nome": "RP01 - Ementa preenchida", "tipo": "campo_obrigatorio", "obrigatoria": true, "parametros": {"campo": "ementa"}},
+    {"codigo": "RP02", "nome": "RP02 - Docente informado", "tipo": "campo_obrigatorio", "obrigatoria": true, "parametros": {"campo": "docente"}},
+    {"codigo": "RP03", "nome": "RP03 - Horário de atendimento informado", "tipo": "campo_obrigatorio", "obrigatoria": true, "parametros": {"campo": "horario_atendimento"}},
+    {"codigo": "RP04", "nome": "RP04 - Pré-requisitos informados", "tipo": "campo_obrigatorio", "obrigatoria": true, "parametros": {"campo": "pre_requisitos"}},
+    {"codigo": "RP05", "nome": "RP05 - Metodologia preenchida", "tipo": "campo_obrigatorio", "obrigatoria": true, "parametros": {"campo": "metodologia"}},
+    {"codigo": "RP06", "nome": "RP06 - Procedimentos de avaliação preenchidos", "tipo": "campo_obrigatorio", "obrigatoria": true, "parametros": {"campo": "procedimentos_avaliacao"}},
+    {"codigo": "RP07", "nome": "RP07 - Referência básica cadastrada", "tipo": "campo_obrigatorio", "obrigatoria": true, "parametros": {"campo": "referencia_basica"}},
+    {"codigo": "RP08", "nome": "RP08 - Código da disciplina no padrão FACET-SNP-000", "tipo": "formato", "obrigatoria": true, "parametros": {"campo": "codigo_disciplina", "regex": "^FACET-SNP-\\d{3}$", "formatoDescricao": "FACET-SNP- seguido de 3 dígitos"}},
+    {"codigo": "RP09", "nome": "RP09 - Ano/semestre válido", "tipo": "formato", "obrigatoria": true, "parametros": {"campo": "ano_semestre", "regex": "^\\d{4}\\.[12]$", "formatoDescricao": "ano com 4 dígitos, ponto, semestre 1 ou 2"}},
+    {"codigo": "RP10", "nome": "RP10 - Código de horário válido", "tipo": "formato", "obrigatoria": true, "parametros": {"campo": "horario", "regex": "^[2-7]{1,3}[MTN][1-6]{1,6}$", "formatoDescricao": "dia(s) 2-7, turno M/T/N e aulas 1-6, ex.: 3N123"}},
+    {"codigo": "RP11", "nome": "RP11 - Matrícula do docente com 9 dígitos", "tipo": "formato", "obrigatoria": true, "parametros": {"campo": "matricula_docente", "regex": "^\\d{9}$", "formatoDescricao": "9 dígitos"}},
+    {"codigo": "RP12", "nome": "RP12 - Data da 1ª avaliação válida", "tipo": "formato", "obrigatoria": true, "parametros": {"campo": "data_primeira_avaliacao", "regex": "^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\\d{4}$", "formatoDescricao": "data dd/mm/aaaa"}},
+    {"codigo": "RP13", "nome": "RP13 - CH do docente igual à CH da disciplina", "tipo": "calculo", "obrigatoria": true, "parametros": {"expressao": "carga_horaria_docente", "campo_resultado": "carga_horaria", "tolerancia": 0}},
+    {"codigo": "RP14", "nome": "RP14 - Cronograma com 12 a 40 aulas", "tipo": "intervalo", "obrigatoria": true, "parametros": {"campo": "qtd_aulas_cronograma", "min": 12, "max": 40}},
+    {"codigo": "RP15", "nome": "RP15 - Data da 1ª aula válida", "tipo": "formato", "obrigatoria": true, "parametros": {"campo": "data_primeira_aula", "regex": "^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\\d{4}$", "formatoDescricao": "data dd/mm/aaaa"}}
+  ]
+}

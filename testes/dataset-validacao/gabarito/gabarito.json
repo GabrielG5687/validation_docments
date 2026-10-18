@@ -1,0 +1,1866 @@
+{
+  "gerado_em": "2026-10-17T22:43:18",
+  "seed": 20261017,
+  "catalogo_erros": {
+    "EP01": {
+      "doc": "plano",
+      "regra": "RP01",
+      "classe": "regra",
+      "status": "nao_encontrado",
+      "desc": "Ementa em branco",
+      "onde": "Página 1, campo Ementa"
+    },
+    "EP02": {
+      "doc": "plano",
+      "regra": "RP02",
+      "classe": "regra",
+      "status": "nao_encontrado",
+      "desc": "Docente e matrícula do docente em branco",
+      "onde": "Página 1, bloco Matrícula / Docente(s)"
+    },
+    "EP03": {
+      "doc": "plano",
+      "regra": "RP03",
+      "classe": "regra",
+      "status": "nao_encontrado",
+      "desc": "Horário de atendimento em branco",
+      "onde": "Página 2, campo Horário de Atendimento"
+    },
+    "EP04": {
+      "doc": "plano",
+      "regra": "RP04",
+      "classe": "regra",
+      "status": "nao_encontrado",
+      "desc": "Pré-requisitos em branco (deveria constar 'Não possui' ou a lista)",
+      "onde": "Página 1, campo Pré-Requisitos"
+    },
+    "EP05": {
+      "doc": "plano",
+      "regra": "RP05",
+      "classe": "regra",
+      "status": "nao_encontrado",
+      "desc": "Metodologia em branco",
+      "onde": "Página 2, campo Metodologia"
+    },
+    "EP06": {
+      "doc": "plano",
+      "regra": "RP06",
+      "classe": "regra",
+      "status": "nao_encontrado",
+      "desc": "Procedimentos de avaliação em branco",
+      "onde": "Página 2, campo Procedimentos de Avaliação"
+    },
+    "EP07": {
+      "doc": "plano",
+      "regra": "RP07",
+      "classe": "regra",
+      "status": "nao_encontrado",
+      "desc": "Referências básicas sem nenhum item",
+      "onde": "Seção Referências Básicas"
+    },
+    "EP08": {
+      "doc": "plano",
+      "regra": "RP08",
+      "classe": "regra",
+      "status": "nao_conforme",
+      "desc": "Código da disciplina fora do padrão FACET-SNP-000",
+      "onde": "Página 1, campo Turma"
+    },
+    "EP09": {
+      "doc": "plano",
+      "regra": "RP09",
+      "classe": "regra",
+      "status": "nao_conforme",
+      "desc": "Ano/semestre inexistente (semestre 3)",
+      "onde": "Página 1, campo Turma"
+    },
+    "EP10": {
+      "doc": "plano",
+      "regra": "RP10",
+      "classe": "regra",
+      "status": "nao_conforme",
+      "desc": "Código de horário inválido",
+      "onde": "Página 1, campo Horário"
+    },
+    "EP11": {
+      "doc": "plano",
+      "regra": "RP11",
+      "classe": "regra",
+      "status": "nao_conforme",
+      "desc": "Matrícula do docente com quantidade errada de dígitos",
+      "onde": "Página 1, coluna Matrícula"
+    },
+    "EP12": {
+      "doc": "plano",
+      "regra": "RP12",
+      "classe": "regra",
+      "status": "nao_encontrado",
+      "desc": "Nenhuma avaliação cadastrada",
+      "onde": "Seção Avaliações"
+    },
+    "EP13": {
+      "doc": "plano",
+      "regra": "RP13",
+      "classe": "regra",
+      "status": "nao_conforme",
+      "desc": "Carga horária do docente diferente da carga horária da disciplina",
+      "onde": "Página 1, Turma x Docente(s)"
+    },
+    "EP14": {
+      "doc": "plano",
+      "regra": "RP14",
+      "classe": "ia",
+      "status": "nao_conforme",
+      "desc": "Cronograma de aulas incompleto (apenas 4 aulas)",
+      "onde": "Seção Cronograma de Aulas"
+    },
+    "EP15": {
+      "doc": "plano",
+      "regra": "RP12",
+      "classe": "regra",
+      "status": "nao_verificavel",
+      "desc": "Data de avaliação impossível (dia 31 em mês de 30 dias)",
+      "onde": "Seção Avaliações, 1ª linha",
+      "obs": "O upload normaliza campos com 'data' no identificador e marca a data como inválida. No teste do Studio não há normalização: a regex aceita 31/09 e o erro passa."
+    },
+    "ED01": {
+      "doc": "diario",
+      "regra": "RD11",
+      "classe": "regra",
+      "status": "nao_encontrado",
+      "desc": "Código de verificação ausente",
+      "onde": "Página 2, Código de Verificação"
+    },
+    "ED02": {
+      "doc": "diario",
+      "regra": "RD11",
+      "classe": "regra",
+      "status": "nao_conforme",
+      "desc": "Código de verificação fora do formato (maiúsculas e hífen)",
+      "onde": "Página 2, Código de Verificação"
+    },
+    "ED03": {
+      "doc": "diario",
+      "regra": "RD02",
+      "classe": "regra",
+      "status": "nao_conforme",
+      "desc": "Turma com status ABERTA (diário não consolidado)",
+      "onde": "Cabeçalho de todas as páginas"
+    },
+    "ED04": {
+      "doc": "diario",
+      "regra": "RD01",
+      "classe": "regra",
+      "status": "nao_verificavel",
+      "desc": "Data de emissão inexistente",
+      "onde": "Cabeçalho de todas as páginas",
+      "obs": "A normalização de datas do upload rejeita a data; a regra fica sem valor verificável."
+    },
+    "ED05": {
+      "doc": "diario",
+      "regra": "RD06",
+      "classe": "regra",
+      "status": "nao_conforme",
+      "desc": "Carga horária incompatível com os créditos (créditos x 15)",
+      "onde": "Página 1, Créditos e Carga Horária"
+    },
+    "ED06": {
+      "doc": "diario",
+      "regra": "RD05",
+      "classe": "regra",
+      "status": "nao_conforme",
+      "desc": "Quantidade de créditos fora do intervalo permitido (1 a 8)",
+      "onde": "Página 1, Créditos"
+    },
+    "ED07": {
+      "doc": "diario",
+      "regra": "RD03",
+      "classe": "regra",
+      "status": "nao_encontrado",
+      "desc": "Nome da disciplina em branco",
+      "onde": "Página 1 e cabeçalhos das listas"
+    },
+    "ED08": {
+      "doc": "diario",
+      "regra": "RD09",
+      "classe": "regra",
+      "status": "nao_encontrado",
+      "desc": "Docente em branco (o nome ainda aparece como usuário na tabela Versões)",
+      "onde": "Página 2, Docente(s)"
+    },
+    "ED09": {
+      "doc": "diario",
+      "regra": "RD13",
+      "classe": "ia",
+      "status": "nao_conforme",
+      "desc": "Faltas não lançadas: alunos sem marcação na frequência e sem total de faltas",
+      "onde": "Páginas 4 e 5"
+    },
+    "ED10": {
+      "doc": "diario",
+      "regra": "RD14",
+      "classe": "ia",
+      "status": "nao_conforme",
+      "desc": "Nota de avaliação não lançada para alunos",
+      "onde": "Página 4, Lista de Notas e Faltas"
+    },
+    "ED11": {
+      "doc": "diario",
+      "regra": "RD15",
+      "classe": "ia",
+      "status": "nao_conforme",
+      "desc": "Aulas do conteúdo programado sem descrição",
+      "onde": "Página 6, Conteúdo Programado"
+    },
+    "ED12": {
+      "doc": "diario",
+      "regra": "RD12",
+      "classe": "regra",
+      "status": "nao_encontrado",
+      "desc": "Tabela Versões do documento sem nenhum registro",
+      "onde": "Página 3, Versões do documento"
+    },
+    "ED13": {
+      "doc": "diario",
+      "regra": "-",
+      "classe": "limitacao",
+      "status": "aprovado",
+      "desc": "Total de faltas diverge da soma da lista de frequência",
+      "onde": "Páginas 4 e 5"
+    },
+    "ED14": {
+      "doc": "diario",
+      "regra": "-",
+      "classe": "limitacao",
+      "status": "aprovado",
+      "desc": "Resultado incoerente: aluno com média acima de 7 e faltas dentro do limite marcado como REP",
+      "onde": "Página 4, coluna Resultado"
+    },
+    "ED15": {
+      "doc": "diario",
+      "regra": "-",
+      "classe": "limitacao",
+      "status": "aprovado",
+      "desc": "Média final calculada errada para um aluno",
+      "onde": "Página 4, coluna Média Final"
+    },
+    "RB01": {
+      "doc": "robustez",
+      "regra": "-",
+      "classe": "robustez",
+      "status": "erro_extracao",
+      "desc": "PDF só com imagem (sem texto selecionável)",
+      "onde": "arquivo inteiro"
+    },
+    "RB02": {
+      "doc": "robustez",
+      "regra": "-",
+      "classe": "robustez",
+      "status": "erro_extracao",
+      "desc": "PDF truncado (corrompido), cabeçalho %PDF- preservado",
+      "onde": "arquivo inteiro"
+    },
+    "RB03": {
+      "doc": "robustez",
+      "regra": "-",
+      "classe": "robustez",
+      "status": "http_415",
+      "desc": "Arquivo de texto com extensão .pdf",
+      "onde": "arquivo inteiro"
+    },
+    "RB04": {
+      "doc": "robustez",
+      "regra": "-",
+      "classe": "robustez",
+      "status": "reenviado",
+      "desc": "Cópia byte a byte de D02_diario_FACET-SNP-291_2025.2_02_.pdf",
+      "onde": "arquivo inteiro"
+    }
+  },
+  "documentos": [
+    {
+      "arquivo": "pdfs/planos/P01_Plano_de_Curso_FACET-SNP-235_2025.1_01_.pdf",
+      "tipo_documento": "Plano de Curso",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "EP01",
+        "EP13"
+      ],
+      "detalhes": {
+        "EP13": "disciplina 30h, docente 60h"
+      },
+      "esperado": {
+        "codigo_disciplina": "FACET-SNP-235",
+        "nome_disciplina": "SEGURANÇA DA INFORMAÇÃO",
+        "carga_horaria": "30",
+        "turma": "01",
+        "ano_semestre": "2025.1",
+        "horario": "3M12",
+        "pre_requisitos": "Não possui",
+        "ementa": "",
+        "matricula_docente": "182262640",
+        "docente": "VALENTINA MACHADO DOS SANTOS",
+        "carga_horaria_docente": "60",
+        "metodologia": "A disciplina está organizada em 03 unidades.\nUnidade 01: Princípios de segurança, Criptografia clássica, Criptografia simétrica;\nUnidade 02: Criptografia assimétrica, Assinaturas digitais, Certificados e ICP;\nUnidade 03: Vulnerabilidades web, Testes de intrusão, Políticas de segurança.\nAs aulas serão teórico-práticas, com exposição dialogada, exercícios e atividades em laboratório. Os estudantes terão 22 horas de atividades síncronas presenciais e 8 horas de atividades assíncronas no ambiente virtual da disciplina.",
+        "procedimentos_avaliacao": "A nota final será a média aritmética simples de três avaliações individuais, uma por unidade, enviadas pelo ambiente virtual. O exame final consistirá em prova teórica individual sobre o conteúdo das três unidades, aplicada ao final do semestre conforme a normativa acadêmica.",
+        "horario_atendimento": "Quintas-feiras, das 14:00 às 16:00 horas. Agendamento pelo fórum da disciplina ou pelo e-mail valentina.santos@exemplo.edu.br.",
+        "data_primeira_aula": "11/03/2025",
+        "data_primeira_avaliacao": "15/04/2025",
+        "referencia_basica": "Nascimento, Renata. Segurança da Informação. Editora Cerrado. 2021",
+        "qtd_aulas_cronograma": "17"
+      },
+      "sha256": "aa8054ceba17f016dc781cc5ecdde3f60ba3d6c44fba1f204e961a74ce3e82aa"
+    },
+    {
+      "arquivo": "pdfs/planos/P02_Plano_de_Curso_FACET-SNP-259_2025.1_01_.pdf",
+      "tipo_documento": "Plano de Curso",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "EP14"
+      ],
+      "detalhes": {},
+      "esperado": {
+        "codigo_disciplina": "FACET-SNP-259",
+        "nome_disciplina": "COMPUTAÇÃO GRÁFICA",
+        "carga_horaria": "60",
+        "turma": "01",
+        "ano_semestre": "2025.1",
+        "horario": "5N123",
+        "pre_requisitos": "( FACET-SNP-211 OU FACET-SNP-243 )",
+        "ementa": "Dispositivos gráficos; primitivas de desenho; transformações geométricas 2D e 3D; projeções; modelos de iluminação; texturas; pipeline gráfico.",
+        "matricula_docente": "289569802",
+        "docente": "SAMUEL PEREIRA DA SILVA",
+        "carga_horaria_docente": "60",
+        "metodologia": "A disciplina está organizada em 03 unidades.\nUnidade 01: Introdução à computação gráfica, Primitivas de desenho, Rasterização;\nUnidade 02: Transformações 3D, Projeções, Câmera virtual;\nUnidade 03: Iluminação, Texturas, Pipeline gráfico.\nAs aulas serão teórico-práticas, com exposição dialogada, exercícios e atividades em laboratório. Os estudantes terão 45 horas de atividades síncronas presenciais e 15 horas de atividades assíncronas no ambiente virtual da disciplina.",
+        "procedimentos_avaliacao": "A nota final será a média aritmética simples de três avaliações individuais, uma por unidade, enviadas pelo ambiente virtual. O exame final consistirá em prova teórica individual sobre o conteúdo das três unidades, aplicada ao final do semestre conforme a normativa acadêmica.",
+        "horario_atendimento": "Quintas-feiras, das 08:00 às 10:00 horas. Agendamento pelo fórum da disciplina ou pelo e-mail samuel.silva@exemplo.edu.br.",
+        "data_primeira_aula": "13/03/2025",
+        "data_primeira_avaliacao": "17/04/2025",
+        "referencia_basica": "Xavier, Gabriela. Computação Gráfica. Editora Chapada. 2019",
+        "qtd_aulas_cronograma": "4"
+      },
+      "sha256": "3a000bd245eeb2e7e6358a4048ed5dd6c7f136cb8ee6ebb11f0d10a2478d5372"
+    },
+    {
+      "arquivo": "pdfs/planos/P03_Plano_de_Curso_FACET-SNP-284_2024.1_01_.pdf",
+      "tipo_documento": "Plano de Curso",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "controle",
+      "erros": [],
+      "detalhes": {},
+      "esperado": {
+        "codigo_disciplina": "FACET-SNP-284",
+        "nome_disciplina": "PROGRAMAÇÃO ORIENTADA A OBJETOS",
+        "carga_horaria": "30",
+        "turma": "01",
+        "ano_semestre": "2024.1",
+        "horario": "3T12",
+        "pre_requisitos": "( FACET-SNP-327 )",
+        "ementa": "Classes e objetos; encapsulamento; herança; polimorfismo; interfaces; tratamento de exceções; coleções; padrões de projeto introdutórios.",
+        "matricula_docente": "340091003",
+        "docente": "SAMUEL GOMES DE SOUZA",
+        "carga_horaria_docente": "30",
+        "metodologia": "A disciplina está organizada em 03 unidades.\nUnidade 01: Paradigma orientado a objetos, Classes e objetos, Encapsulamento;\nUnidade 02: Herança, Polimorfismo, Classes abstratas e interfaces;\nUnidade 03: Coleções, Padrões de projeto: Strategy, Padrões de projeto: Observer.\nAs aulas serão teórico-práticas, com exposição dialogada, exercícios e atividades em laboratório. Os estudantes terão 22 horas de atividades síncronas presenciais e 8 horas de atividades assíncronas no ambiente virtual da disciplina.",
+        "procedimentos_avaliacao": "A nota final será a média aritmética simples de três avaliações individuais, uma por unidade, enviadas pelo ambiente virtual. O exame final consistirá em prova teórica individual sobre o conteúdo das três unidades, aplicada ao final do semestre conforme a normativa acadêmica.",
+        "horario_atendimento": "Sextas-feiras, das 16:00 às 18:00 horas. Agendamento pelo fórum da disciplina ou pelo e-mail samuel.souza@exemplo.edu.br.",
+        "data_primeira_aula": "05/03/2024",
+        "data_primeira_avaliacao": "09/04/2024",
+        "referencia_basica": "Nascimento, Helena. Programação Orientada a Objetos. Editora Chapada. 2012",
+        "qtd_aulas_cronograma": "17"
+      },
+      "sha256": "4ee78ee8bde6675be6e956bc499be5adbe95ad9691897c9d69ee4297eec49ced"
+    },
+    {
+      "arquivo": "pdfs/planos/P04_Plano_de_Curso_FACET-SNP-290_2024.1_01_.pdf",
+      "tipo_documento": "Plano de Curso",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "EP06"
+      ],
+      "detalhes": {},
+      "esperado": {
+        "codigo_disciplina": "FACET-SNP-290",
+        "nome_disciplina": "DESENVOLVIMENTO WEB",
+        "carga_horaria": "60",
+        "turma": "01",
+        "ano_semestre": "2024.1",
+        "horario": "5M1234",
+        "pre_requisitos": "Não possui",
+        "ementa": "Arquitetura cliente-servidor; HTML, CSS e JavaScript; frameworks de front-end; APIs REST; persistência; implantação de aplicações web.",
+        "matricula_docente": "249829618",
+        "docente": "CAMILA CAMPOS DA SILVA",
+        "carga_horaria_docente": "60",
+        "metodologia": "A disciplina está organizada em 03 unidades.\nUnidade 01: HTML semântico, CSS e layout responsivo, JavaScript moderno;\nUnidade 02: Framework de front-end, Componentes e estado, Roteamento no cliente;\nUnidade 03: APIs REST no servidor, Autenticação, Persistência de dados.\nAs aulas serão teórico-práticas, com exposição dialogada, exercícios e atividades em laboratório. Os estudantes terão 45 horas de atividades síncronas presenciais e 15 horas de atividades assíncronas no ambiente virtual da disciplina.",
+        "procedimentos_avaliacao": "",
+        "horario_atendimento": "Segundas-feiras, das 08:00 às 10:00 horas. Agendamento pelo fórum da disciplina ou pelo e-mail camila.silva@exemplo.edu.br.",
+        "data_primeira_aula": "07/03/2024",
+        "data_primeira_avaliacao": "18/04/2024",
+        "referencia_basica": "Fonseca, Paula. Desenvolvimento Web Moderno. Editora Cerrado. 2015",
+        "qtd_aulas_cronograma": "17"
+      },
+      "sha256": "af547260bc574203c724e7e2b7f65ec8a12e3427abe31cf39431be9408e968b4"
+    },
+    {
+      "arquivo": "pdfs/planos/P05_Plano_de_Curso_FACET-SNP-219_2024.2_01_.pdf",
+      "tipo_documento": "Plano de Curso",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "EP13"
+      ],
+      "detalhes": {
+        "EP13": "disciplina 30h, docente 60h"
+      },
+      "esperado": {
+        "codigo_disciplina": "FACET-SNP-219",
+        "nome_disciplina": "DESENVOLVIMENTO WEB",
+        "carga_horaria": "30",
+        "turma": "01",
+        "ano_semestre": "2024.2",
+        "horario": "2M12",
+        "pre_requisitos": "Não possui",
+        "ementa": "Arquitetura cliente-servidor; HTML, CSS e JavaScript; frameworks de front-end; APIs REST; persistência; implantação de aplicações web.",
+        "matricula_docente": "198954033",
+        "docente": "SAMUEL TAVARES DE SOUZA",
+        "carga_horaria_docente": "60",
+        "metodologia": "A disciplina está organizada em 03 unidades.\nUnidade 01: HTML semântico, CSS e layout responsivo, JavaScript moderno;\nUnidade 02: Framework de front-end, Componentes e estado, Roteamento no cliente;\nUnidade 03: APIs REST no servidor, Autenticação, Persistência de dados.\nAs aulas serão teórico-práticas, com exposição dialogada, exercícios e atividades em laboratório. Os estudantes terão 22 horas de atividades síncronas presenciais e 8 horas de atividades assíncronas no ambiente virtual da disciplina.",
+        "procedimentos_avaliacao": "A nota final será a média aritmética simples de três avaliações individuais, uma por unidade, enviadas pelo ambiente virtual. O exame final consistirá em prova teórica individual sobre o conteúdo das três unidades, aplicada ao final do semestre conforme a normativa acadêmica.",
+        "horario_atendimento": "Sextas-feiras, das 14:00 às 16:00 horas. Agendamento pelo fórum da disciplina ou pelo e-mail samuel.souza@exemplo.edu.br.",
+        "data_primeira_aula": "05/08/2024",
+        "data_primeira_avaliacao": "16/09/2024",
+        "referencia_basica": "Dias, Pedro. Desenvolvimento Web Moderno. Editora Horizonte. 2015",
+        "qtd_aulas_cronograma": "17"
+      },
+      "sha256": "5db7c3b10707fcf456b6d181888688c4436129ebf52e67f69e69d5db90bd9ea5"
+    },
+    {
+      "arquivo": "pdfs/planos/P06_Plano_de_Curso_FACET-SNP-229_2025.2_01_.pdf",
+      "tipo_documento": "Plano de Curso",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "EP03",
+        "EP09"
+      ],
+      "detalhes": {
+        "EP09": "semestre impresso: 2025.3"
+      },
+      "esperado": {
+        "codigo_disciplina": "FACET-SNP-229",
+        "nome_disciplina": "PROGRAMAÇÃO ORIENTADA A OBJETOS",
+        "carga_horaria": "60",
+        "turma": "01",
+        "ano_semestre": "2025.3",
+        "horario": "2N123",
+        "pre_requisitos": "Não possui",
+        "ementa": "Classes e objetos; encapsulamento; herança; polimorfismo; interfaces; tratamento de exceções; coleções; padrões de projeto introdutórios.",
+        "matricula_docente": "237036909",
+        "docente": "JOÃO MOREIRA DE OLIVEIRA",
+        "carga_horaria_docente": "60",
+        "metodologia": "A disciplina está organizada em 03 unidades.\nUnidade 01: Paradigma orientado a objetos, Classes e objetos, Encapsulamento;\nUnidade 02: Herança, Polimorfismo, Classes abstratas e interfaces;\nUnidade 03: Coleções, Padrões de projeto: Strategy, Padrões de projeto: Observer.\nAs aulas serão teórico-práticas, com exposição dialogada, exercícios e atividades em laboratório. Os estudantes terão 45 horas de atividades síncronas presenciais e 15 horas de atividades assíncronas no ambiente virtual da disciplina.",
+        "procedimentos_avaliacao": "A nota final será a média aritmética simples de três avaliações individuais, uma por unidade, enviadas pelo ambiente virtual. O exame final consistirá em prova teórica individual sobre o conteúdo das três unidades, aplicada ao final do semestre conforme a normativa acadêmica.",
+        "horario_atendimento": "",
+        "data_primeira_aula": "04/08/2025",
+        "data_primeira_avaliacao": "08/09/2025",
+        "referencia_basica": "Pereira, Tiago. Programação Orientada a Objetos. Editora Guaporé. 2014",
+        "qtd_aulas_cronograma": "16"
+      },
+      "sha256": "ac82f7da979c306f16c909395fbcb8c5c9b8f61bd717ec5b4f9a752235ccf779"
+    },
+    {
+      "arquivo": "pdfs/planos/P07_Plano_de_Curso_FACET-SNP-325_2025.2_02_.pdf",
+      "tipo_documento": "Plano de Curso",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "EP15"
+      ],
+      "detalhes": {
+        "EP15": "data impressa: 31/09/2025"
+      },
+      "esperado": {
+        "codigo_disciplina": "FACET-SNP-325",
+        "nome_disciplina": "DESENVOLVIMENTO WEB",
+        "carga_horaria": "90",
+        "turma": "02",
+        "ano_semestre": "2025.2",
+        "horario": "4N1234",
+        "pre_requisitos": "( FACET-SNP-304 )",
+        "ementa": "Arquitetura cliente-servidor; HTML, CSS e JavaScript; frameworks de front-end; APIs REST; persistência; implantação de aplicações web.",
+        "matricula_docente": "122835972",
+        "docente": "FELIPE MACHADO COSTA",
+        "carga_horaria_docente": "90",
+        "metodologia": "A disciplina está organizada em 03 unidades.\nUnidade 01: HTML semântico, CSS e layout responsivo, JavaScript moderno;\nUnidade 02: Framework de front-end, Componentes e estado, Roteamento no cliente;\nUnidade 03: APIs REST no servidor, Autenticação, Persistência de dados.\nAs aulas serão teórico-práticas, com exposição dialogada, exercícios e atividades em laboratório. Os estudantes terão 67 horas de atividades síncronas presenciais e 23 horas de atividades assíncronas no ambiente virtual da disciplina.",
+        "procedimentos_avaliacao": "A nota final será a média aritmética simples de três avaliações individuais, uma por unidade, enviadas pelo ambiente virtual. O exame final consistirá em prova teórica individual sobre o conteúdo das três unidades, aplicada ao final do semestre conforme a normativa acadêmica.",
+        "horario_atendimento": "Quintas-feiras, das 16:00 às 18:00 horas. Agendamento pelo fórum da disciplina ou pelo e-mail felipe.costa@exemplo.edu.br.",
+        "data_primeira_aula": "06/08/2025",
+        "data_primeira_avaliacao": "31/09/2025",
+        "referencia_basica": "Teixeira, Wesley. Desenvolvimento Web Moderno. Editora Guaporé. 2022",
+        "qtd_aulas_cronograma": "17"
+      },
+      "sha256": "e693e9c344e5070f2a2a4718805553b4857b7390fcfdfb83ab6a463a4d0c77a9"
+    },
+    {
+      "arquivo": "pdfs/planos/P08_Plano_de_Curso_FACET-SNP-302_2025.1_02_.pdf",
+      "tipo_documento": "Plano de Curso",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "EP07"
+      ],
+      "detalhes": {},
+      "esperado": {
+        "codigo_disciplina": "FACET-SNP-302",
+        "nome_disciplina": "PROGRAMAÇÃO ORIENTADA A OBJETOS",
+        "carga_horaria": "60",
+        "turma": "02",
+        "ano_semestre": "2025.1",
+        "horario": "2M123",
+        "pre_requisitos": "( FACET-SNP-235 )",
+        "ementa": "Classes e objetos; encapsulamento; herança; polimorfismo; interfaces; tratamento de exceções; coleções; padrões de projeto introdutórios.",
+        "matricula_docente": "290454723",
+        "docente": "OTÁVIO BORGES DOS SANTOS",
+        "carga_horaria_docente": "60",
+        "metodologia": "A disciplina está organizada em 03 unidades.\nUnidade 01: Paradigma orientado a objetos, Classes e objetos, Encapsulamento;\nUnidade 02: Herança, Polimorfismo, Classes abstratas e interfaces;\nUnidade 03: Coleções, Padrões de projeto: Strategy, Padrões de projeto: Observer.\nAs aulas serão teórico-práticas, com exposição dialogada, exercícios e atividades em laboratório. Os estudantes terão 45 horas de atividades síncronas presenciais e 15 horas de atividades assíncronas no ambiente virtual da disciplina.",
+        "procedimentos_avaliacao": "A nota final será a média aritmética simples de três avaliações individuais, uma por unidade, enviadas pelo ambiente virtual. O exame final consistirá em prova teórica individual sobre o conteúdo das três unidades, aplicada ao final do semestre conforme a normativa acadêmica.",
+        "horario_atendimento": "Sextas-feiras, das 08:00 às 10:00 horas. Agendamento pelo fórum da disciplina ou pelo e-mail otavio.santos@exemplo.edu.br.",
+        "data_primeira_aula": "10/03/2025",
+        "data_primeira_avaliacao": "14/04/2025",
+        "referencia_basica": "",
+        "qtd_aulas_cronograma": "18"
+      },
+      "sha256": "ed53686850736a047e01e90f299a6d11540bb611501a12cf5a3d40c6c6823071"
+    },
+    {
+      "arquivo": "pdfs/planos/P09_Plano_de_Curso_FACET-SNP-232_2025.1_01_.pdf",
+      "tipo_documento": "Plano de Curso",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "controle",
+      "erros": [],
+      "detalhes": {},
+      "esperado": {
+        "codigo_disciplina": "FACET-SNP-232",
+        "nome_disciplina": "SISTEMAS OPERACIONAIS",
+        "carga_horaria": "60",
+        "turma": "01",
+        "ano_semestre": "2025.1",
+        "horario": "5N1234",
+        "pre_requisitos": "Não possui",
+        "ementa": "Estrutura de sistemas operacionais; processos e threads; escalonamento; sincronização; impasses; gerência de memória; sistemas de arquivos.",
+        "matricula_docente": "190704440",
+        "docente": "LEONARDO ALMEIDA DA SILVA",
+        "carga_horaria_docente": "60",
+        "metodologia": "A disciplina está organizada em 03 unidades.\nUnidade 01: Introdução aos sistemas operacionais, Processos, Threads;\nUnidade 02: Sincronização, Semáforos e monitores, Impasses;\nUnidade 03: Memória virtual, Sistemas de arquivos, Entrada e saída.\nAs aulas serão teórico-práticas, com exposição dialogada, exercícios e atividades em laboratório. Os estudantes terão 45 horas de atividades síncronas presenciais e 15 horas de atividades assíncronas no ambiente virtual da disciplina.",
+        "procedimentos_avaliacao": "A nota final será a média aritmética simples de três avaliações individuais, uma por unidade, enviadas pelo ambiente virtual. O exame final consistirá em prova teórica individual sobre o conteúdo das três unidades, aplicada ao final do semestre conforme a normativa acadêmica.",
+        "horario_atendimento": "Terças-feiras, das 08:00 às 10:00 horas. Agendamento pelo fórum da disciplina ou pelo e-mail leonardo.silva@exemplo.edu.br.",
+        "data_primeira_aula": "13/03/2025",
+        "data_primeira_avaliacao": "17/04/2025",
+        "referencia_basica": "Freitas, Gabriela. Sistemas Operacionais Modernos. Editora Araguaia. 2018",
+        "qtd_aulas_cronograma": "16"
+      },
+      "sha256": "d4b51cb6b91c3e832378ec46a6543ec5012f9c04e05b16ea3320eaa2e3e83c84"
+    },
+    {
+      "arquivo": "pdfs/planos/P10_Plano_de_Curso_FACET-SNP-306_2025.2_01_.pdf",
+      "tipo_documento": "Plano de Curso",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "EP05"
+      ],
+      "detalhes": {},
+      "esperado": {
+        "codigo_disciplina": "FACET-SNP-306",
+        "nome_disciplina": "COMPUTAÇÃO GRÁFICA",
+        "carga_horaria": "30",
+        "turma": "01",
+        "ano_semestre": "2025.2",
+        "horario": "5M12",
+        "pre_requisitos": "Não possui",
+        "ementa": "Dispositivos gráficos; primitivas de desenho; transformações geométricas 2D e 3D; projeções; modelos de iluminação; texturas; pipeline gráfico.",
+        "matricula_docente": "217779891",
+        "docente": "GUSTAVO MENDES PEREIRA",
+        "carga_horaria_docente": "30",
+        "metodologia": "",
+        "procedimentos_avaliacao": "A nota final será a média aritmética simples de três avaliações individuais, uma por unidade, enviadas pelo ambiente virtual. O exame final consistirá em prova teórica individual sobre o conteúdo das três unidades, aplicada ao final do semestre conforme a normativa acadêmica.",
+        "horario_atendimento": "Sextas-feiras, das 08:00 às 10:00 horas. Agendamento pelo fórum da disciplina ou pelo e-mail gustavo.pereira@exemplo.edu.br.",
+        "data_primeira_aula": "07/08/2025",
+        "data_primeira_avaliacao": "11/09/2025",
+        "referencia_basica": "Dias, Gustavo. Computação Gráfica. Editora Araguaia. 2017",
+        "qtd_aulas_cronograma": "16"
+      },
+      "sha256": "1e9930ead7b6e453d0c366297bd5ee6332c3531e9e63b170cbfefbb95f0aff23"
+    },
+    {
+      "arquivo": "pdfs/planos/P11_Plano_de_Curso_FACET-SNP-253_2025.2_02_.pdf",
+      "tipo_documento": "Plano de Curso",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "controle",
+      "erros": [],
+      "detalhes": {},
+      "esperado": {
+        "codigo_disciplina": "FACET-SNP-253",
+        "nome_disciplina": "SISTEMAS OPERACIONAIS",
+        "carga_horaria": "60",
+        "turma": "02",
+        "ano_semestre": "2025.2",
+        "horario": "4N1234",
+        "pre_requisitos": "Não possui",
+        "ementa": "Estrutura de sistemas operacionais; processos e threads; escalonamento; sincronização; impasses; gerência de memória; sistemas de arquivos.",
+        "matricula_docente": "107554876",
+        "docente": "ARTHUR PEREIRA DA SILVA",
+        "carga_horaria_docente": "60",
+        "metodologia": "A disciplina está organizada em 03 unidades.\nUnidade 01: Introdução aos sistemas operacionais, Processos, Threads;\nUnidade 02: Sincronização, Semáforos e monitores, Impasses;\nUnidade 03: Memória virtual, Sistemas de arquivos, Entrada e saída.\nAs aulas serão teórico-práticas, com exposição dialogada, exercícios e atividades em laboratório. Os estudantes terão 45 horas de atividades síncronas presenciais e 15 horas de atividades assíncronas no ambiente virtual da disciplina.",
+        "procedimentos_avaliacao": "A nota final será a média aritmética simples de três avaliações individuais, uma por unidade, enviadas pelo ambiente virtual. O exame final consistirá em prova teórica individual sobre o conteúdo das três unidades, aplicada ao final do semestre conforme a normativa acadêmica.",
+        "horario_atendimento": "Quintas-feiras, das 08:00 às 10:00 horas. Agendamento pelo fórum da disciplina ou pelo e-mail arthur.silva@exemplo.edu.br.",
+        "data_primeira_aula": "06/08/2025",
+        "data_primeira_avaliacao": "10/09/2025",
+        "referencia_basica": "Xavier, Igor. Sistemas Operacionais Modernos. Editora Chapada. 2017",
+        "qtd_aulas_cronograma": "17"
+      },
+      "sha256": "e404a2a224c1f87956f18ede9c711ae74938c16631cae829ddd1a6e2b8861b7f"
+    },
+    {
+      "arquivo": "pdfs/planos/P12_Plano_de_Curso_FACET-SNP-292_2025.1_01_.pdf",
+      "tipo_documento": "Plano de Curso",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "EP08",
+        "EP11"
+      ],
+      "detalhes": {
+        "EP08": "código impresso: FACET-SNP-29X",
+        "EP11": "matrícula impressa: 3186343"
+      },
+      "esperado": {
+        "codigo_disciplina": "FACET-SNP-29X",
+        "nome_disciplina": "ENGENHARIA DE SOFTWARE I",
+        "carga_horaria": "60",
+        "turma": "01",
+        "ano_semestre": "2025.1",
+        "horario": "3T123",
+        "pre_requisitos": "Não possui",
+        "ementa": "Processos de software; modelos de ciclo de vida; engenharia de requisitos; modelagem com UML; métodos ágeis; gestão de configuração.",
+        "matricula_docente": "3186343",
+        "docente": "VINÍCIUS ALMEIDA NUNES",
+        "carga_horaria_docente": "60",
+        "metodologia": "A disciplina está organizada em 03 unidades.\nUnidade 01: Introdução à engenharia de software, Modelos de processo, Métodos ágeis: Scrum;\nUnidade 02: Engenharia de requisitos, Casos de uso, Diagramas de classe;\nUnidade 03: Arquitetura de software, Controle de versão, Integração contínua.\nAs aulas serão teórico-práticas, com exposição dialogada, exercícios e atividades em laboratório. Os estudantes terão 45 horas de atividades síncronas presenciais e 15 horas de atividades assíncronas no ambiente virtual da disciplina.",
+        "procedimentos_avaliacao": "A nota final será a média aritmética simples de três avaliações individuais, uma por unidade, enviadas pelo ambiente virtual. O exame final consistirá em prova teórica individual sobre o conteúdo das três unidades, aplicada ao final do semestre conforme a normativa acadêmica.",
+        "horario_atendimento": "Sextas-feiras, das 08:00 às 10:00 horas. Agendamento pelo fórum da disciplina ou pelo e-mail vinicius.nunes@exemplo.edu.br.",
+        "data_primeira_aula": "11/03/2025",
+        "data_primeira_avaliacao": "15/04/2025",
+        "referencia_basica": "Campos, Valentina. Engenharia de Software Moderna. Editora Guaporé. 2020",
+        "qtd_aulas_cronograma": "16"
+      },
+      "sha256": "16c2182541aa579c664fab379368460f8a1b3aa6c7ccf38c4fb4cd871656b7cf"
+    },
+    {
+      "arquivo": "pdfs/planos/P13_Plano_de_Curso_FACET-SNP-331_2024.2_01_.pdf",
+      "tipo_documento": "Plano de Curso",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "EP01"
+      ],
+      "detalhes": {},
+      "esperado": {
+        "codigo_disciplina": "FACET-SNP-331",
+        "nome_disciplina": "DESENVOLVIMENTO WEB",
+        "carga_horaria": "90",
+        "turma": "01",
+        "ano_semestre": "2024.2",
+        "horario": "5N1234",
+        "pre_requisitos": "( FACET-SNP-320 )",
+        "ementa": "",
+        "matricula_docente": "237531582",
+        "docente": "PEDRO SOUZA DE OLIVEIRA",
+        "carga_horaria_docente": "90",
+        "metodologia": "A disciplina está organizada em 03 unidades.\nUnidade 01: HTML semântico, CSS e layout responsivo, JavaScript moderno;\nUnidade 02: Framework de front-end, Componentes e estado, Roteamento no cliente;\nUnidade 03: APIs REST no servidor, Autenticação, Persistência de dados.\nAs aulas serão teórico-práticas, com exposição dialogada, exercícios e atividades em laboratório. Os estudantes terão 67 horas de atividades síncronas presenciais e 23 horas de atividades assíncronas no ambiente virtual da disciplina.",
+        "procedimentos_avaliacao": "A nota final será a média aritmética simples de três avaliações individuais, uma por unidade, enviadas pelo ambiente virtual. O exame final consistirá em prova teórica individual sobre o conteúdo das três unidades, aplicada ao final do semestre conforme a normativa acadêmica.",
+        "horario_atendimento": "Terças-feiras, das 16:00 às 18:00 horas. Agendamento pelo fórum da disciplina ou pelo e-mail pedro.oliveira@exemplo.edu.br.",
+        "data_primeira_aula": "08/08/2024",
+        "data_primeira_avaliacao": "19/09/2024",
+        "referencia_basica": "Pinto, Heitor. Desenvolvimento Web Moderno. Editora Guaporé. 2015",
+        "qtd_aulas_cronograma": "18"
+      },
+      "sha256": "6d0b2bb95f550d44a8e3629d7fcb366ec526433e29fad9ad1277afe5b85bdf58"
+    },
+    {
+      "arquivo": "pdfs/planos/P14_Plano_de_Curso_FACET-SNP-224_2025.2_01_.pdf",
+      "tipo_documento": "Plano de Curso",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "controle",
+      "erros": [],
+      "detalhes": {},
+      "esperado": {
+        "codigo_disciplina": "FACET-SNP-224",
+        "nome_disciplina": "DESENVOLVIMENTO WEB",
+        "carga_horaria": "30",
+        "turma": "01",
+        "ano_semestre": "2025.2",
+        "horario": "4N12",
+        "pre_requisitos": "( FACET-SNP-269 OU FACET-SNP-332 )",
+        "ementa": "Arquitetura cliente-servidor; HTML, CSS e JavaScript; frameworks de front-end; APIs REST; persistência; implantação de aplicações web.",
+        "matricula_docente": "395208692",
+        "docente": "TALITA MOREIRA DE SOUZA",
+        "carga_horaria_docente": "30",
+        "metodologia": "A disciplina está organizada em 03 unidades.\nUnidade 01: HTML semântico, CSS e layout responsivo, JavaScript moderno;\nUnidade 02: Framework de front-end, Componentes e estado, Roteamento no cliente;\nUnidade 03: APIs REST no servidor, Autenticação, Persistência de dados.\nAs aulas serão teórico-práticas, com exposição dialogada, exercícios e atividades em laboratório. Os estudantes terão 22 horas de atividades síncronas presenciais e 8 horas de atividades assíncronas no ambiente virtual da disciplina.",
+        "procedimentos_avaliacao": "A nota final será a média aritmética simples de três avaliações individuais, uma por unidade, enviadas pelo ambiente virtual. O exame final consistirá em prova teórica individual sobre o conteúdo das três unidades, aplicada ao final do semestre conforme a normativa acadêmica.",
+        "horario_atendimento": "Quintas-feiras, das 16:00 às 18:00 horas. Agendamento pelo fórum da disciplina ou pelo e-mail talita.souza@exemplo.edu.br.",
+        "data_primeira_aula": "06/08/2025",
+        "data_primeira_avaliacao": "10/09/2025",
+        "referencia_basica": "Duarte, Camila. Desenvolvimento Web Moderno. Editora Chapada. 2018",
+        "qtd_aulas_cronograma": "16"
+      },
+      "sha256": "11ffcfc0e868cc84834249b6e33c34422d1aa3b5515450343b33c2bb7932ecd2"
+    },
+    {
+      "arquivo": "pdfs/planos/P15_Plano_de_Curso_FACET-SNP-223_2024.1_01_.pdf",
+      "tipo_documento": "Plano de Curso",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "EP03"
+      ],
+      "detalhes": {},
+      "esperado": {
+        "codigo_disciplina": "FACET-SNP-223",
+        "nome_disciplina": "SEGURANÇA DA INFORMAÇÃO",
+        "carga_horaria": "60",
+        "turma": "01",
+        "ano_semestre": "2024.1",
+        "horario": "5M1234",
+        "pre_requisitos": "Não possui",
+        "ementa": "Princípios de segurança; criptografia simétrica e assimétrica; assinaturas digitais; autenticação; vulnerabilidades em aplicações; políticas de segurança e LGPD.",
+        "matricula_docente": "316854801",
+        "docente": "JOÃO OLIVEIRA TEIXEIRA",
+        "carga_horaria_docente": "60",
+        "metodologia": "A disciplina está organizada em 03 unidades.\nUnidade 01: Princípios de segurança, Criptografia clássica, Criptografia simétrica;\nUnidade 02: Criptografia assimétrica, Assinaturas digitais, Certificados e ICP;\nUnidade 03: Vulnerabilidades web, Testes de intrusão, Políticas de segurança.\nAs aulas serão teórico-práticas, com exposição dialogada, exercícios e atividades em laboratório. Os estudantes terão 45 horas de atividades síncronas presenciais e 15 horas de atividades assíncronas no ambiente virtual da disciplina.",
+        "procedimentos_avaliacao": "A nota final será a média aritmética simples de três avaliações individuais, uma por unidade, enviadas pelo ambiente virtual. O exame final consistirá em prova teórica individual sobre o conteúdo das três unidades, aplicada ao final do semestre conforme a normativa acadêmica.",
+        "horario_atendimento": "",
+        "data_primeira_aula": "07/03/2024",
+        "data_primeira_avaliacao": "11/04/2024",
+        "referencia_basica": "Freitas, Helena. Segurança da Informação. Editora Chapada. 2022",
+        "qtd_aulas_cronograma": "16"
+      },
+      "sha256": "083d043d380feab31c202c9aa16429765fdbbbce7195e3005fabdc74f683d1fc"
+    },
+    {
+      "arquivo": "pdfs/planos/P16_Plano_de_Curso_FACET-SNP-249_2024.1_01_.pdf",
+      "tipo_documento": "Plano de Curso",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "EP04"
+      ],
+      "detalhes": {},
+      "esperado": {
+        "codigo_disciplina": "FACET-SNP-249",
+        "nome_disciplina": "COMPUTAÇÃO GRÁFICA",
+        "carga_horaria": "60",
+        "turma": "01",
+        "ano_semestre": "2024.1",
+        "horario": "3T123",
+        "pre_requisitos": "",
+        "ementa": "Dispositivos gráficos; primitivas de desenho; transformações geométricas 2D e 3D; projeções; modelos de iluminação; texturas; pipeline gráfico.",
+        "matricula_docente": "149280280",
+        "docente": "NICOLAS PINTO DE OLIVEIRA",
+        "carga_horaria_docente": "60",
+        "metodologia": "A disciplina está organizada em 03 unidades.\nUnidade 01: Introdução à computação gráfica, Primitivas de desenho, Rasterização;\nUnidade 02: Transformações 3D, Projeções, Câmera virtual;\nUnidade 03: Iluminação, Texturas, Pipeline gráfico.\nAs aulas serão teórico-práticas, com exposição dialogada, exercícios e atividades em laboratório. Os estudantes terão 45 horas de atividades síncronas presenciais e 15 horas de atividades assíncronas no ambiente virtual da disciplina.",
+        "procedimentos_avaliacao": "A nota final será a média aritmética simples de três avaliações individuais, uma por unidade, enviadas pelo ambiente virtual. O exame final consistirá em prova teórica individual sobre o conteúdo das três unidades, aplicada ao final do semestre conforme a normativa acadêmica.",
+        "horario_atendimento": "Terças-feiras, das 14:00 às 16:00 horas. Agendamento pelo fórum da disciplina ou pelo e-mail nicolas.oliveira@exemplo.edu.br.",
+        "data_primeira_aula": "05/03/2024",
+        "data_primeira_avaliacao": "16/04/2024",
+        "referencia_basica": "Fonseca, Gustavo. Computação Gráfica. Editora Pantanal Acadêmica. 2020",
+        "qtd_aulas_cronograma": "18"
+      },
+      "sha256": "3822d1a48c22567b3c4c2776ee16081e95e2757b31899ccb99d68f1a95c0016d"
+    },
+    {
+      "arquivo": "pdfs/planos/P17_Plano_de_Curso_FACET-SNP-246_2024.1_01_.pdf",
+      "tipo_documento": "Plano de Curso",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "EP11"
+      ],
+      "detalhes": {
+        "EP11": "matrícula impressa: 371512"
+      },
+      "esperado": {
+        "codigo_disciplina": "FACET-SNP-246",
+        "nome_disciplina": "REDES DE COMPUTADORES",
+        "carga_horaria": "60",
+        "turma": "01",
+        "ano_semestre": "2024.1",
+        "horario": "2N123",
+        "pre_requisitos": "Não possui",
+        "ementa": "Arquiteturas de redes; modelo OSI e TCP/IP; camada de aplicação; camada de transporte; camada de rede e roteamento; redes locais e enlace.",
+        "matricula_docente": "371512",
+        "docente": "HELENA PEREIRA DE OLIVEIRA",
+        "carga_horaria_docente": "60",
+        "metodologia": "A disciplina está organizada em 03 unidades.\nUnidade 01: Introdução às redes, Modelos OSI e TCP/IP, Camada de aplicação: HTTP e DNS;\nUnidade 02: Camada de transporte: UDP, TCP e controle de congestionamento, Camada de rede: IPv4;\nUnidade 03: Roteamento, IPv6, Camada de enlace e Ethernet.\nAs aulas serão teórico-práticas, com exposição dialogada, exercícios e atividades em laboratório. Os estudantes terão 45 horas de atividades síncronas presenciais e 15 horas de atividades assíncronas no ambiente virtual da disciplina.",
+        "procedimentos_avaliacao": "A nota final será a média aritmética simples de três avaliações individuais, uma por unidade, enviadas pelo ambiente virtual. O exame final consistirá em prova teórica individual sobre o conteúdo das três unidades, aplicada ao final do semestre conforme a normativa acadêmica.",
+        "horario_atendimento": "Sextas-feiras, das 08:00 às 10:00 horas. Agendamento pelo fórum da disciplina ou pelo e-mail helena.oliveira@exemplo.edu.br.",
+        "data_primeira_aula": "04/03/2024",
+        "data_primeira_avaliacao": "08/04/2024",
+        "referencia_basica": "Vieira, Natália. Redes de Computadores. Editora Guaporé. 2022",
+        "qtd_aulas_cronograma": "18"
+      },
+      "sha256": "8b135935cd56cfd3483c4f28cde7e6be8c21d5b41042ad52b1bf69dcaba3aa24"
+    },
+    {
+      "arquivo": "pdfs/planos/P18_Plano_de_Curso_FACET-SNP-233_2024.2_02_.pdf",
+      "tipo_documento": "Plano de Curso",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "EP12"
+      ],
+      "detalhes": {},
+      "esperado": {
+        "codigo_disciplina": "FACET-SNP-233",
+        "nome_disciplina": "SISTEMAS OPERACIONAIS",
+        "carga_horaria": "60",
+        "turma": "02",
+        "ano_semestre": "2024.2",
+        "horario": "2T1234",
+        "pre_requisitos": "Não possui",
+        "ementa": "Estrutura de sistemas operacionais; processos e threads; escalonamento; sincronização; impasses; gerência de memória; sistemas de arquivos.",
+        "matricula_docente": "376214772",
+        "docente": "LEONARDO XAVIER DOS SANTOS",
+        "carga_horaria_docente": "60",
+        "metodologia": "A disciplina está organizada em 03 unidades.\nUnidade 01: Introdução aos sistemas operacionais, Processos, Threads;\nUnidade 02: Sincronização, Semáforos e monitores, Impasses;\nUnidade 03: Memória virtual, Sistemas de arquivos, Entrada e saída.\nAs aulas serão teórico-práticas, com exposição dialogada, exercícios e atividades em laboratório. Os estudantes terão 45 horas de atividades síncronas presenciais e 15 horas de atividades assíncronas no ambiente virtual da disciplina.",
+        "procedimentos_avaliacao": "A nota final será a média aritmética simples de três avaliações individuais, uma por unidade, enviadas pelo ambiente virtual. O exame final consistirá em prova teórica individual sobre o conteúdo das três unidades, aplicada ao final do semestre conforme a normativa acadêmica.",
+        "horario_atendimento": "Quartas-feiras, das 14:00 às 16:00 horas. Agendamento pelo fórum da disciplina ou pelo e-mail leonardo.santos@exemplo.edu.br.",
+        "data_primeira_aula": "05/08/2024",
+        "data_primeira_avaliacao": "",
+        "referencia_basica": "Moreira, Talita. Sistemas Operacionais Modernos. Editora Guaporé. 2018",
+        "qtd_aulas_cronograma": "18"
+      },
+      "sha256": "1c8526a5f72b12486fb5dcd4725b66fd6bac2951cff3b4d06609afed98cb3694"
+    },
+    {
+      "arquivo": "pdfs/planos/P19_Plano_de_Curso_FACET-SNP-332_2024.1_01_.pdf",
+      "tipo_documento": "Plano de Curso",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "EP10"
+      ],
+      "detalhes": {
+        "EP10": "horário impresso: 9N123"
+      },
+      "esperado": {
+        "codigo_disciplina": "FACET-SNP-332",
+        "nome_disciplina": "COMPILADORES",
+        "carga_horaria": "60",
+        "turma": "01",
+        "ano_semestre": "2024.1",
+        "horario": "9N123",
+        "pre_requisitos": "Não possui",
+        "ementa": "Estrutura de um compilador; análise léxica; análise sintática descendente e ascendente; análise semântica; geração de código intermediário; otimização.",
+        "matricula_docente": "294079433",
+        "docente": "VALENTINA DIAS ALMEIDA",
+        "carga_horaria_docente": "60",
+        "metodologia": "A disciplina está organizada em 03 unidades.\nUnidade 01: Estrutura de um compilador, Análise léxica, Expressões regulares e autômatos;\nUnidade 02: Gramáticas, Análise sintática descendente, Análise sintática ascendente;\nUnidade 03: Análise semântica, Tabela de símbolos, Código intermediário.\nAs aulas serão teórico-práticas, com exposição dialogada, exercícios e atividades em laboratório. Os estudantes terão 45 horas de atividades síncronas presenciais e 15 horas de atividades assíncronas no ambiente virtual da disciplina.",
+        "procedimentos_avaliacao": "A nota final será a média aritmética simples de três avaliações individuais, uma por unidade, enviadas pelo ambiente virtual. O exame final consistirá em prova teórica individual sobre o conteúdo das três unidades, aplicada ao final do semestre conforme a normativa acadêmica.",
+        "horario_atendimento": "Quintas-feiras, das 14:00 às 16:00 horas. Agendamento pelo fórum da disciplina ou pelo e-mail valentina.almeida@exemplo.edu.br.",
+        "data_primeira_aula": "05/03/2024",
+        "data_primeira_avaliacao": "02/04/2024",
+        "referencia_basica": "Rocha, Ana. Compiladores: Princípios e Práticas. Editora Chapada. 2022",
+        "qtd_aulas_cronograma": "16"
+      },
+      "sha256": "c7f9bbce45b43161b4e68765b899e0049c794a78b6babaaa432cc734a79c6a3f"
+    },
+    {
+      "arquivo": "pdfs/planos/P20_Plano_de_Curso_FACET-SNP-206_2024.2_01_.pdf",
+      "tipo_documento": "Plano de Curso",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "EP09"
+      ],
+      "detalhes": {
+        "EP09": "semestre impresso: 2024.3"
+      },
+      "esperado": {
+        "codigo_disciplina": "FACET-SNP-206",
+        "nome_disciplina": "SISTEMAS OPERACIONAIS",
+        "carga_horaria": "60",
+        "turma": "01",
+        "ano_semestre": "2024.3",
+        "horario": "4T1234",
+        "pre_requisitos": "( FACET-SNP-282 )",
+        "ementa": "Estrutura de sistemas operacionais; processos e threads; escalonamento; sincronização; impasses; gerência de memória; sistemas de arquivos.",
+        "matricula_docente": "316227925",
+        "docente": "GABRIELA LIMA MARTINS",
+        "carga_horaria_docente": "60",
+        "metodologia": "A disciplina está organizada em 03 unidades.\nUnidade 01: Introdução aos sistemas operacionais, Processos, Threads;\nUnidade 02: Sincronização, Semáforos e monitores, Impasses;\nUnidade 03: Memória virtual, Sistemas de arquivos, Entrada e saída.\nAs aulas serão teórico-práticas, com exposição dialogada, exercícios e atividades em laboratório. Os estudantes terão 45 horas de atividades síncronas presenciais e 15 horas de atividades assíncronas no ambiente virtual da disciplina.",
+        "procedimentos_avaliacao": "A nota final será a média aritmética simples de três avaliações individuais, uma por unidade, enviadas pelo ambiente virtual. O exame final consistirá em prova teórica individual sobre o conteúdo das três unidades, aplicada ao final do semestre conforme a normativa acadêmica.",
+        "horario_atendimento": "Quartas-feiras, das 16:00 às 18:00 horas. Agendamento pelo fórum da disciplina ou pelo e-mail gabriela.martins@exemplo.edu.br.",
+        "data_primeira_aula": "07/08/2024",
+        "data_primeira_avaliacao": "04/09/2024",
+        "referencia_basica": "Tavares, Wesley. Sistemas Operacionais Modernos. Editora Chapada. 2021",
+        "qtd_aulas_cronograma": "16"
+      },
+      "sha256": "de35fa54b718a834e55af214e52cd0ffea2edab161ea1f813f77422a19174ee8"
+    },
+    {
+      "arquivo": "pdfs/planos/P21_Plano_de_Curso_FACET-SNP-258_2024.1_02_.pdf",
+      "tipo_documento": "Plano de Curso",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "controle",
+      "erros": [],
+      "detalhes": {},
+      "esperado": {
+        "codigo_disciplina": "FACET-SNP-258",
+        "nome_disciplina": "REDES DE COMPUTADORES",
+        "carga_horaria": "90",
+        "turma": "02",
+        "ano_semestre": "2024.1",
+        "horario": "4N1234",
+        "pre_requisitos": "( FACET-SNP-225 )",
+        "ementa": "Arquiteturas de redes; modelo OSI e TCP/IP; camada de aplicação; camada de transporte; camada de rede e roteamento; redes locais e enlace.",
+        "matricula_docente": "176643804",
+        "docente": "ARTHUR DIAS DE SOUZA",
+        "carga_horaria_docente": "90",
+        "metodologia": "A disciplina está organizada em 03 unidades.\nUnidade 01: Introdução às redes, Modelos OSI e TCP/IP, Camada de aplicação: HTTP e DNS;\nUnidade 02: Camada de transporte: UDP, TCP e controle de congestionamento, Camada de rede: IPv4;\nUnidade 03: Roteamento, IPv6, Camada de enlace e Ethernet.\nAs aulas serão teórico-práticas, com exposição dialogada, exercícios e atividades em laboratório. Os estudantes terão 67 horas de atividades síncronas presenciais e 23 horas de atividades assíncronas no ambiente virtual da disciplina.",
+        "procedimentos_avaliacao": "A nota final será a média aritmética simples de três avaliações individuais, uma por unidade, enviadas pelo ambiente virtual. O exame final consistirá em prova teórica individual sobre o conteúdo das três unidades, aplicada ao final do semestre conforme a normativa acadêmica.",
+        "horario_atendimento": "Segundas-feiras, das 14:00 às 16:00 horas. Agendamento pelo fórum da disciplina ou pelo e-mail arthur.souza@exemplo.edu.br.",
+        "data_primeira_aula": "06/03/2024",
+        "data_primeira_avaliacao": "10/04/2024",
+        "referencia_basica": "Lima, Igor. Redes de Computadores. Editora Araguaia. 2016",
+        "qtd_aulas_cronograma": "18"
+      },
+      "sha256": "3e56daaac11eab67957fa2b29a86613bccf1581364cb319e0b2ff94670390025"
+    },
+    {
+      "arquivo": "pdfs/planos/P22_Plano_de_Curso_FACET-SNP-268_2024.1_01_.pdf",
+      "tipo_documento": "Plano de Curso",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "controle",
+      "erros": [],
+      "detalhes": {},
+      "esperado": {
+        "codigo_disciplina": "FACET-SNP-268",
+        "nome_disciplina": "REDES DE COMPUTADORES",
+        "carga_horaria": "60",
+        "turma": "01",
+        "ano_semestre": "2024.1",
+        "horario": "3T1234",
+        "pre_requisitos": "Não possui",
+        "ementa": "Arquiteturas de redes; modelo OSI e TCP/IP; camada de aplicação; camada de transporte; camada de rede e roteamento; redes locais e enlace.",
+        "matricula_docente": "376632522",
+        "docente": "PAULA DIAS DOS SANTOS",
+        "carga_horaria_docente": "60",
+        "metodologia": "A disciplina está organizada em 03 unidades.\nUnidade 01: Introdução às redes, Modelos OSI e TCP/IP, Camada de aplicação: HTTP e DNS;\nUnidade 02: Camada de transporte: UDP, TCP e controle de congestionamento, Camada de rede: IPv4;\nUnidade 03: Roteamento, IPv6, Camada de enlace e Ethernet.\nAs aulas serão teórico-práticas, com exposição dialogada, exercícios e atividades em laboratório. Os estudantes terão 45 horas de atividades síncronas presenciais e 15 horas de atividades assíncronas no ambiente virtual da disciplina.",
+        "procedimentos_avaliacao": "A nota final será a média aritmética simples de três avaliações individuais, uma por unidade, enviadas pelo ambiente virtual. O exame final consistirá em prova teórica individual sobre o conteúdo das três unidades, aplicada ao final do semestre conforme a normativa acadêmica.",
+        "horario_atendimento": "Sextas-feiras, das 14:00 às 16:00 horas. Agendamento pelo fórum da disciplina ou pelo e-mail paula.santos@exemplo.edu.br.",
+        "data_primeira_aula": "05/03/2024",
+        "data_primeira_avaliacao": "09/04/2024",
+        "referencia_basica": "Santos, Mariana. Redes de Computadores. Editora Pantanal Acadêmica. 2017",
+        "qtd_aulas_cronograma": "18"
+      },
+      "sha256": "d8d7960606f57a7676aaed927b1f50435b403855e5ab5fde99e86f8188d99525"
+    },
+    {
+      "arquivo": "pdfs/planos/P23_Plano_de_Curso_FACET-SNP-204_2024.1_02_.pdf",
+      "tipo_documento": "Plano de Curso",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "EP08"
+      ],
+      "detalhes": {
+        "EP08": "código impresso: FACE-SNP-204"
+      },
+      "esperado": {
+        "codigo_disciplina": "FACE-SNP-204",
+        "nome_disciplina": "SEGURANÇA DA INFORMAÇÃO",
+        "carga_horaria": "30",
+        "turma": "02",
+        "ano_semestre": "2024.1",
+        "horario": "2N12",
+        "pre_requisitos": "Não possui",
+        "ementa": "Princípios de segurança; criptografia simétrica e assimétrica; assinaturas digitais; autenticação; vulnerabilidades em aplicações; políticas de segurança e LGPD.",
+        "matricula_docente": "345140974",
+        "docente": "OTÁVIO COSTA SANTOS",
+        "carga_horaria_docente": "30",
+        "metodologia": "A disciplina está organizada em 03 unidades.\nUnidade 01: Princípios de segurança, Criptografia clássica, Criptografia simétrica;\nUnidade 02: Criptografia assimétrica, Assinaturas digitais, Certificados e ICP;\nUnidade 03: Vulnerabilidades web, Testes de intrusão, Políticas de segurança.\nAs aulas serão teórico-práticas, com exposição dialogada, exercícios e atividades em laboratório. Os estudantes terão 22 horas de atividades síncronas presenciais e 8 horas de atividades assíncronas no ambiente virtual da disciplina.",
+        "procedimentos_avaliacao": "A nota final será a média aritmética simples de três avaliações individuais, uma por unidade, enviadas pelo ambiente virtual. O exame final consistirá em prova teórica individual sobre o conteúdo das três unidades, aplicada ao final do semestre conforme a normativa acadêmica.",
+        "horario_atendimento": "Terças-feiras, das 16:00 às 18:00 horas. Agendamento pelo fórum da disciplina ou pelo e-mail otavio.santos@exemplo.edu.br.",
+        "data_primeira_aula": "04/03/2024",
+        "data_primeira_avaliacao": "08/04/2024",
+        "referencia_basica": "Santos, Paula. Segurança da Informação. Editora Pantanal Acadêmica. 2017",
+        "qtd_aulas_cronograma": "16"
+      },
+      "sha256": "7c79ec534fea02cf872e95b155a8755b58c533fa4ba7066a4432c52292e2effb"
+    },
+    {
+      "arquivo": "pdfs/planos/P24_Plano_de_Curso_FACET-SNP-244_2025.2_02_.pdf",
+      "tipo_documento": "Plano de Curso",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "controle",
+      "erros": [],
+      "detalhes": {},
+      "esperado": {
+        "codigo_disciplina": "FACET-SNP-244",
+        "nome_disciplina": "PROGRAMAÇÃO ORIENTADA A OBJETOS",
+        "carga_horaria": "90",
+        "turma": "02",
+        "ano_semestre": "2025.2",
+        "horario": "2N1234",
+        "pre_requisitos": "Não possui",
+        "ementa": "Classes e objetos; encapsulamento; herança; polimorfismo; interfaces; tratamento de exceções; coleções; padrões de projeto introdutórios.",
+        "matricula_docente": "132127924",
+        "docente": "JOÃO ARAÚJO DA SILVA",
+        "carga_horaria_docente": "90",
+        "metodologia": "A disciplina está organizada em 03 unidades.\nUnidade 01: Paradigma orientado a objetos, Classes e objetos, Encapsulamento;\nUnidade 02: Herança, Polimorfismo, Classes abstratas e interfaces;\nUnidade 03: Coleções, Padrões de projeto: Strategy, Padrões de projeto: Observer.\nAs aulas serão teórico-práticas, com exposição dialogada, exercícios e atividades em laboratório. Os estudantes terão 67 horas de atividades síncronas presenciais e 23 horas de atividades assíncronas no ambiente virtual da disciplina.",
+        "procedimentos_avaliacao": "A nota final será a média aritmética simples de três avaliações individuais, uma por unidade, enviadas pelo ambiente virtual. O exame final consistirá em prova teórica individual sobre o conteúdo das três unidades, aplicada ao final do semestre conforme a normativa acadêmica.",
+        "horario_atendimento": "Terças-feiras, das 16:00 às 18:00 horas. Agendamento pelo fórum da disciplina ou pelo e-mail joao.silva@exemplo.edu.br.",
+        "data_primeira_aula": "04/08/2025",
+        "data_primeira_avaliacao": "15/09/2025",
+        "referencia_basica": "Nunes, Sabrina. Programação Orientada a Objetos. Editora Guaporé. 2023",
+        "qtd_aulas_cronograma": "17"
+      },
+      "sha256": "0bf47ca252bc610240ada81fe61cb8f08b2b626302a3c41daeedd8aaa87686d9"
+    },
+    {
+      "arquivo": "pdfs/planos/P25_Plano_de_Curso_FACET-SNP-245_2025.2_02_.pdf",
+      "tipo_documento": "Plano de Curso",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "EP02"
+      ],
+      "detalhes": {},
+      "esperado": {
+        "codigo_disciplina": "FACET-SNP-245",
+        "nome_disciplina": "PROGRAMAÇÃO ORIENTADA A OBJETOS",
+        "carga_horaria": "60",
+        "turma": "02",
+        "ano_semestre": "2025.2",
+        "horario": "6M123",
+        "pre_requisitos": "Não possui",
+        "ementa": "Classes e objetos; encapsulamento; herança; polimorfismo; interfaces; tratamento de exceções; coleções; padrões de projeto introdutórios.",
+        "matricula_docente": "",
+        "docente": "",
+        "carga_horaria_docente": "",
+        "metodologia": "A disciplina está organizada em 03 unidades.\nUnidade 01: Paradigma orientado a objetos, Classes e objetos, Encapsulamento;\nUnidade 02: Herança, Polimorfismo, Classes abstratas e interfaces;\nUnidade 03: Coleções, Padrões de projeto: Strategy, Padrões de projeto: Observer.\nAs aulas serão teórico-práticas, com exposição dialogada, exercícios e atividades em laboratório. Os estudantes terão 45 horas de atividades síncronas presenciais e 15 horas de atividades assíncronas no ambiente virtual da disciplina.",
+        "procedimentos_avaliacao": "A nota final será a média aritmética simples de três avaliações individuais, uma por unidade, enviadas pelo ambiente virtual. O exame final consistirá em prova teórica individual sobre o conteúdo das três unidades, aplicada ao final do semestre conforme a normativa acadêmica.",
+        "horario_atendimento": "Terças-feiras, das 14:00 às 16:00 horas. Agendamento pelo fórum da disciplina ou pelo e-mail heitor.silva@exemplo.edu.br.",
+        "data_primeira_aula": "08/08/2025",
+        "data_primeira_avaliacao": "12/09/2025",
+        "referencia_basica": "Mendes, Natália. Programação Orientada a Objetos. Editora Araguaia. 2021",
+        "qtd_aulas_cronograma": "17"
+      },
+      "sha256": "7a0a9b3d68a04d0dfab9aace11e1e781024a6819dbe2102d38521ac2d4a40b04"
+    },
+    {
+      "arquivo": "pdfs/diarios/D01_diario_FACET-SNP-296_2024.1_02_.pdf",
+      "tipo_documento": "Diário de Turma",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "ED14"
+      ],
+      "detalhes": {
+        "ED14": "GABRIELA ROCHA SOUZA: média 8.2, 12 faltas, resultado REP"
+      },
+      "esperado": {
+        "data_emissao": "09/07/2024",
+        "status_turma": "CONSOLIDADA",
+        "codigo_disciplina": "FACET-SNP-296",
+        "nome_disciplina": "COMPILADORES",
+        "creditos": "6",
+        "carga_horaria": "90",
+        "turma": "02",
+        "ano_semestre": "2024.1",
+        "horario": "4M1234",
+        "matricula_docente": "142514813",
+        "docente": "BEATRIZ TEIXEIRA SOUZA",
+        "codigo_verificacao": "808d2b90c7",
+        "codigo_versao": "6f076863a3",
+        "qtd_alunos_sem_total_faltas": "0",
+        "qtd_alunos_sem_nota": "0",
+        "qtd_aulas_sem_conteudo": "0"
+      },
+      "sha256": "1aaee909ffc408b3c31608d0c564970b8cfa79cabc592c0ba61072e6f73b3f7a"
+    },
+    {
+      "arquivo": "pdfs/diarios/D02_diario_FACET-SNP-291_2025.2_02_.pdf",
+      "tipo_documento": "Diário de Turma",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "controle",
+      "erros": [],
+      "detalhes": {},
+      "esperado": {
+        "data_emissao": "23/11/2025",
+        "status_turma": "CONSOLIDADA",
+        "codigo_disciplina": "FACET-SNP-291",
+        "nome_disciplina": "TEORIA DA COMPUTAÇÃO",
+        "creditos": "4",
+        "carga_horaria": "60",
+        "turma": "02",
+        "ano_semestre": "2025.2",
+        "horario": "2N1234",
+        "matricula_docente": "303729386",
+        "docente": "NICOLAS DIAS DE OLIVEIRA",
+        "codigo_verificacao": "487b06393d",
+        "codigo_versao": "b132bab422",
+        "qtd_alunos_sem_total_faltas": "0",
+        "qtd_alunos_sem_nota": "0",
+        "qtd_aulas_sem_conteudo": "0"
+      },
+      "sha256": "574b62949860d3f8f3305a9b8fa55a93aa5daf66180c5a9641e9136d4587a0e9"
+    },
+    {
+      "arquivo": "pdfs/diarios/D03_diario_FACET-SNP-324_2025.2_01_.pdf",
+      "tipo_documento": "Diário de Turma",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "controle",
+      "erros": [],
+      "detalhes": {},
+      "esperado": {
+        "data_emissao": "23/11/2025",
+        "status_turma": "CONSOLIDADA",
+        "codigo_disciplina": "FACET-SNP-324",
+        "nome_disciplina": "PROGRAMAÇÃO ORIENTADA A OBJETOS",
+        "creditos": "6",
+        "carga_horaria": "90",
+        "turma": "01",
+        "ano_semestre": "2025.2",
+        "horario": "3N1234",
+        "matricula_docente": "293211819",
+        "docente": "DANIEL PEREIRA COSTA",
+        "codigo_verificacao": "871103f305",
+        "codigo_versao": "a943421097",
+        "qtd_alunos_sem_total_faltas": "0",
+        "qtd_alunos_sem_nota": "0",
+        "qtd_aulas_sem_conteudo": "0"
+      },
+      "sha256": "7da1cd62176169fb56240fe4f8f5f8aa8be4c35caa5dc4508c7a505b89be1121"
+    },
+    {
+      "arquivo": "pdfs/diarios/D04_diario_FACET-SNP-317_2024.1_02_.pdf",
+      "tipo_documento": "Diário de Turma",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "ED09"
+      ],
+      "detalhes": {
+        "ED09": "alunos: MATEUS COSTA DE SOUZA; VINÍCIUS DUARTE OLIVEIRA"
+      },
+      "esperado": {
+        "data_emissao": "16/07/2024",
+        "status_turma": "CONSOLIDADA",
+        "codigo_disciplina": "FACET-SNP-317",
+        "nome_disciplina": "SISTEMAS OPERACIONAIS",
+        "creditos": "4",
+        "carga_horaria": "60",
+        "turma": "02",
+        "ano_semestre": "2024.1",
+        "horario": "6T1234",
+        "matricula_docente": "228963353",
+        "docente": "EDUARDA MENDES TEIXEIRA",
+        "codigo_verificacao": "ddbf222634",
+        "codigo_versao": "5163c4a005",
+        "qtd_alunos_sem_total_faltas": "2",
+        "qtd_alunos_sem_nota": "0",
+        "qtd_aulas_sem_conteudo": "0"
+      },
+      "sha256": "b79a674c3f65b7791491eb9de6e63820ca184fe4a8a475548be0030c730c57a5"
+    },
+    {
+      "arquivo": "pdfs/diarios/D05_diario_FACET-SNP-248_2025.2_01_.pdf",
+      "tipo_documento": "Diário de Turma",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "ED09",
+        "ED10"
+      ],
+      "detalhes": {
+        "ED09": "alunos: NATÁLIA ROCHA DE OLIVEIRA; TIAGO DIAS TAVARES",
+        "ED10": "alunos: VINÍCIUS ROCHA FERREIRA; SABRINA MACHADO RIBEIRO"
+      },
+      "esperado": {
+        "data_emissao": "06/12/2025",
+        "status_turma": "CONSOLIDADA",
+        "codigo_disciplina": "FACET-SNP-248",
+        "nome_disciplina": "COMPUTAÇÃO GRÁFICA",
+        "creditos": "6",
+        "carga_horaria": "90",
+        "turma": "01",
+        "ano_semestre": "2025.2",
+        "horario": "3T1234",
+        "matricula_docente": "269184752",
+        "docente": "VALENTINA BARBOSA ROCHA",
+        "codigo_verificacao": "0c4ce01728",
+        "codigo_versao": "81ab33d907",
+        "qtd_alunos_sem_total_faltas": "2",
+        "qtd_alunos_sem_nota": "2",
+        "qtd_aulas_sem_conteudo": "0"
+      },
+      "sha256": "18f15ae910cd7e5b6c94d762e7ced8837e7bcb8fd813777501dbb078c9ca63e1"
+    },
+    {
+      "arquivo": "pdfs/diarios/D06_diario_FACET-SNP-205_2024.2_02_.pdf",
+      "tipo_documento": "Diário de Turma",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "ED03"
+      ],
+      "detalhes": {},
+      "esperado": {
+        "data_emissao": "09/12/2024",
+        "status_turma": "ABERTA",
+        "codigo_disciplina": "FACET-SNP-205",
+        "nome_disciplina": "PROGRAMAÇÃO ORIENTADA A OBJETOS",
+        "creditos": "2",
+        "carga_horaria": "30",
+        "turma": "02",
+        "ano_semestre": "2024.2",
+        "horario": "5M12",
+        "matricula_docente": "395192708",
+        "docente": "ISABELA VIEIRA DE OLIVEIRA",
+        "codigo_verificacao": "3ee8a4e7c9",
+        "codigo_versao": "77865772e2",
+        "qtd_alunos_sem_total_faltas": "0",
+        "qtd_alunos_sem_nota": "0",
+        "qtd_aulas_sem_conteudo": "0"
+      },
+      "sha256": "5590fe29614204b80ba8e25cbedc484f7b1c0e8bfd92bacddd8b793a36edd89d"
+    },
+    {
+      "arquivo": "pdfs/diarios/D07_diario_FACET-SNP-327_2025.2_01_.pdf",
+      "tipo_documento": "Diário de Turma",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "controle",
+      "erros": [],
+      "detalhes": {},
+      "esperado": {
+        "data_emissao": "16/12/2025",
+        "status_turma": "CONSOLIDADA",
+        "codigo_disciplina": "FACET-SNP-327",
+        "nome_disciplina": "SISTEMAS OPERACIONAIS",
+        "creditos": "4",
+        "carga_horaria": "60",
+        "turma": "01",
+        "ano_semestre": "2025.2",
+        "horario": "4N1234",
+        "matricula_docente": "240252295",
+        "docente": "NATÁLIA DIAS DOS SANTOS",
+        "codigo_verificacao": "430b24c401",
+        "codigo_versao": "35a3b4dd2f",
+        "qtd_alunos_sem_total_faltas": "0",
+        "qtd_alunos_sem_nota": "0",
+        "qtd_aulas_sem_conteudo": "0"
+      },
+      "sha256": "0cab5e3dc12d0ddf208d90bb7dc73000a6bd3086ea9361e4bad088406edbf494"
+    },
+    {
+      "arquivo": "pdfs/diarios/D08_diario_FACET-SNP-281_2024.1_01_.pdf",
+      "tipo_documento": "Diário de Turma",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "ED10"
+      ],
+      "detalhes": {
+        "ED10": "alunos: MATEUS ARAÚJO DE OLIVEIRA"
+      },
+      "esperado": {
+        "data_emissao": "15/07/2024",
+        "status_turma": "CONSOLIDADA",
+        "codigo_disciplina": "FACET-SNP-281",
+        "nome_disciplina": "COMPILADORES",
+        "creditos": "4",
+        "carga_horaria": "60",
+        "turma": "01",
+        "ano_semestre": "2024.1",
+        "horario": "3M1234",
+        "matricula_docente": "374972084",
+        "docente": "GABRIELA XAVIER DA SILVA",
+        "codigo_verificacao": "283ad939a0",
+        "codigo_versao": "fb0e6c93e5",
+        "qtd_alunos_sem_total_faltas": "0",
+        "qtd_alunos_sem_nota": "1",
+        "qtd_aulas_sem_conteudo": "0"
+      },
+      "sha256": "54e76728ef9d15b389048ba34ad6fc4238995789dc6a342fc1f137e7fce8cf5d"
+    },
+    {
+      "arquivo": "pdfs/diarios/D09_diario_FACET-SNP-338_2025.1_02_.pdf",
+      "tipo_documento": "Diário de Turma",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "ED06"
+      ],
+      "detalhes": {
+        "ED06": "12 créditos / 180h"
+      },
+      "esperado": {
+        "data_emissao": "03/07/2025",
+        "status_turma": "CONSOLIDADA",
+        "codigo_disciplina": "FACET-SNP-338",
+        "nome_disciplina": "COMPILADORES",
+        "creditos": "12",
+        "carga_horaria": "180",
+        "turma": "02",
+        "ano_semestre": "2025.1",
+        "horario": "5T1234",
+        "matricula_docente": "259859504",
+        "docente": "MARIANA MACHADO SALES",
+        "codigo_verificacao": "5c0a79ad5f",
+        "codigo_versao": "56f01aa989",
+        "qtd_alunos_sem_total_faltas": "0",
+        "qtd_alunos_sem_nota": "0",
+        "qtd_aulas_sem_conteudo": "0"
+      },
+      "sha256": "94b31a252ab7984249d273178e604935b10f62dd6310114f1ef9f99c1f6d22d3"
+    },
+    {
+      "arquivo": "pdfs/diarios/D10_diario_FACET-SNP-252_2024.1_01_.pdf",
+      "tipo_documento": "Diário de Turma",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "ED03",
+        "ED05"
+      ],
+      "detalhes": {
+        "ED05": "4 créditos e 75h (esperado 60h)"
+      },
+      "esperado": {
+        "data_emissao": "15/07/2024",
+        "status_turma": "ABERTA",
+        "codigo_disciplina": "FACET-SNP-252",
+        "nome_disciplina": "COMPILADORES",
+        "creditos": "4",
+        "carga_horaria": "75",
+        "turma": "01",
+        "ano_semestre": "2024.1",
+        "horario": "3M123",
+        "matricula_docente": "337796580",
+        "docente": "CAMILA MARTINS DE OLIVEIRA",
+        "codigo_verificacao": "32a094f895",
+        "codigo_versao": "237351594f",
+        "qtd_alunos_sem_total_faltas": "0",
+        "qtd_alunos_sem_nota": "0",
+        "qtd_aulas_sem_conteudo": "0"
+      },
+      "sha256": "bbdedb5c9c7ee7cba6b7418a3bcc1c4e113a95e0f909d9a7f4972f7a7bab93f9"
+    },
+    {
+      "arquivo": "pdfs/diarios/D11_diario_FACET-SNP-266_2025.2_02_.pdf",
+      "tipo_documento": "Diário de Turma",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "ED02"
+      ],
+      "detalhes": {
+        "ED02": "código impresso: 0276-BC25"
+      },
+      "esperado": {
+        "data_emissao": "12/12/2025",
+        "status_turma": "CONSOLIDADA",
+        "codigo_disciplina": "FACET-SNP-266",
+        "nome_disciplina": "BANCO DE DADOS I",
+        "creditos": "6",
+        "carga_horaria": "90",
+        "turma": "02",
+        "ano_semestre": "2025.2",
+        "horario": "5T1234",
+        "matricula_docente": "273572981",
+        "docente": "EDUARDA NUNES NUNES",
+        "codigo_verificacao": "0276-BC25",
+        "codigo_versao": "2fd1461013",
+        "qtd_alunos_sem_total_faltas": "0",
+        "qtd_alunos_sem_nota": "0",
+        "qtd_aulas_sem_conteudo": "0"
+      },
+      "sha256": "d225518dbfda9325dcd72c91ae0a7808f86cab3bafe35a1b8406830fd130092d"
+    },
+    {
+      "arquivo": "pdfs/diarios/D12_diario_FACET-SNP-310_2024.2_01_.pdf",
+      "tipo_documento": "Diário de Turma",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "ED13"
+      ],
+      "detalhes": {
+        "ED13": "BEATRIZ GOMES DA SILVA: frequência soma 8h, total impresso 0h"
+      },
+      "esperado": {
+        "data_emissao": "04/12/2024",
+        "status_turma": "CONSOLIDADA",
+        "codigo_disciplina": "FACET-SNP-310",
+        "nome_disciplina": "TEORIA DA COMPUTAÇÃO",
+        "creditos": "6",
+        "carga_horaria": "90",
+        "turma": "01",
+        "ano_semestre": "2024.2",
+        "horario": "4M1234",
+        "matricula_docente": "260778634",
+        "docente": "MARIANA SOUZA SALES",
+        "codigo_verificacao": "f71a884663",
+        "codigo_versao": "fc95de48ec",
+        "qtd_alunos_sem_total_faltas": "0",
+        "qtd_alunos_sem_nota": "0",
+        "qtd_aulas_sem_conteudo": "0"
+      },
+      "sha256": "d2409a0a998e864b0e6434a5dc4d05accd67d2049b4647244e46bf7bf84b91a2"
+    },
+    {
+      "arquivo": "pdfs/diarios/D13_diario_FACET-SNP-220_2025.2_01_.pdf",
+      "tipo_documento": "Diário de Turma",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "ED08"
+      ],
+      "detalhes": {},
+      "esperado": {
+        "data_emissao": "04/12/2025",
+        "status_turma": "CONSOLIDADA",
+        "codigo_disciplina": "FACET-SNP-220",
+        "nome_disciplina": "REDES DE COMPUTADORES",
+        "creditos": "6",
+        "carga_horaria": "90",
+        "turma": "01",
+        "ano_semestre": "2025.2",
+        "horario": "5N1234",
+        "matricula_docente": "",
+        "docente": "",
+        "codigo_verificacao": "3c4972288c",
+        "codigo_versao": "8ebd2c9a3d",
+        "qtd_alunos_sem_total_faltas": "0",
+        "qtd_alunos_sem_nota": "0",
+        "qtd_aulas_sem_conteudo": "0"
+      },
+      "sha256": "496d30b49240220bdc4bdf601ceb7c670d9671b01b7d945d580b8e9c51b82ace"
+    },
+    {
+      "arquivo": "pdfs/diarios/D14_diario_FACET-SNP-326_2025.1_01_.pdf",
+      "tipo_documento": "Diário de Turma",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "controle",
+      "erros": [],
+      "detalhes": {},
+      "esperado": {
+        "data_emissao": "04/07/2025",
+        "status_turma": "CONSOLIDADA",
+        "codigo_disciplina": "FACET-SNP-326",
+        "nome_disciplina": "ENGENHARIA DE SOFTWARE I",
+        "creditos": "4",
+        "carga_horaria": "60",
+        "turma": "01",
+        "ano_semestre": "2025.1",
+        "horario": "6N1234",
+        "matricula_docente": "241952124",
+        "docente": "EDUARDA MENDES DE SOUZA",
+        "codigo_verificacao": "d39c1983f6",
+        "codigo_versao": "cfb384906a",
+        "qtd_alunos_sem_total_faltas": "0",
+        "qtd_alunos_sem_nota": "0",
+        "qtd_aulas_sem_conteudo": "0"
+      },
+      "sha256": "3c8d12c7ef92c0a973d227792838b3292d3871ea0f8d02604b9451b4347eddca"
+    },
+    {
+      "arquivo": "pdfs/diarios/D15_diario_FACET-SNP-329_2025.1_01_.pdf",
+      "tipo_documento": "Diário de Turma",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "ED05"
+      ],
+      "detalhes": {
+        "ED05": "6 créditos e 105h (esperado 90h)"
+      },
+      "esperado": {
+        "data_emissao": "21/07/2025",
+        "status_turma": "CONSOLIDADA",
+        "codigo_disciplina": "FACET-SNP-329",
+        "nome_disciplina": "ENGENHARIA DE SOFTWARE I",
+        "creditos": "6",
+        "carga_horaria": "105",
+        "turma": "01",
+        "ano_semestre": "2025.1",
+        "horario": "4N1234",
+        "matricula_docente": "153372660",
+        "docente": "RENATA ALMEIDA DA SILVA",
+        "codigo_verificacao": "8c8788630e",
+        "codigo_versao": "98198a6f94",
+        "qtd_alunos_sem_total_faltas": "0",
+        "qtd_alunos_sem_nota": "0",
+        "qtd_aulas_sem_conteudo": "0"
+      },
+      "sha256": "15b049769974de0f7b92b35dcdc98138a6abfbef3c7b420eb3d462a2bdcdb8b6"
+    },
+    {
+      "arquivo": "pdfs/diarios/D16_diario_FACET-SNP-270_2024.2_02_.pdf",
+      "tipo_documento": "Diário de Turma",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "ED01"
+      ],
+      "detalhes": {},
+      "esperado": {
+        "data_emissao": "04/12/2024",
+        "status_turma": "CONSOLIDADA",
+        "codigo_disciplina": "FACET-SNP-270",
+        "nome_disciplina": "INTELIGÊNCIA ARTIFICIAL",
+        "creditos": "4",
+        "carga_horaria": "60",
+        "turma": "02",
+        "ano_semestre": "2024.2",
+        "horario": "3N1234",
+        "matricula_docente": "358150626",
+        "docente": "HEITOR MENDES DE SOUZA",
+        "codigo_verificacao": "",
+        "codigo_versao": "f1712aba4e",
+        "qtd_alunos_sem_total_faltas": "0",
+        "qtd_alunos_sem_nota": "0",
+        "qtd_aulas_sem_conteudo": "0"
+      },
+      "sha256": "c1cf2c3e89cee04b325214b723b8d0851af08de1cd3a75219feb9cd973780bce"
+    },
+    {
+      "arquivo": "pdfs/diarios/D17_diario_FACET-SNP-289_2025.1_01_.pdf",
+      "tipo_documento": "Diário de Turma",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "controle",
+      "erros": [],
+      "detalhes": {},
+      "esperado": {
+        "data_emissao": "11/07/2025",
+        "status_turma": "CONSOLIDADA",
+        "codigo_disciplina": "FACET-SNP-289",
+        "nome_disciplina": "PROGRAMAÇÃO ORIENTADA A OBJETOS",
+        "creditos": "4",
+        "carga_horaria": "60",
+        "turma": "01",
+        "ano_semestre": "2025.1",
+        "horario": "6N123",
+        "matricula_docente": "211412939",
+        "docente": "VINÍCIUS OLIVEIRA DE SOUZA",
+        "codigo_verificacao": "f5f21df8a1",
+        "codigo_versao": "6409f71806",
+        "qtd_alunos_sem_total_faltas": "0",
+        "qtd_alunos_sem_nota": "0",
+        "qtd_aulas_sem_conteudo": "0"
+      },
+      "sha256": "c890efdb7321b967704e74c1916f736d915a9cfbe3d18902bcc442234c3c4377"
+    },
+    {
+      "arquivo": "pdfs/diarios/D18_diario_FACET-SNP-340_2024.1_01_.pdf",
+      "tipo_documento": "Diário de Turma",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "controle",
+      "erros": [],
+      "detalhes": {},
+      "esperado": {
+        "data_emissao": "30/06/2024",
+        "status_turma": "CONSOLIDADA",
+        "codigo_disciplina": "FACET-SNP-340",
+        "nome_disciplina": "SISTEMAS OPERACIONAIS",
+        "creditos": "4",
+        "carga_horaria": "60",
+        "turma": "01",
+        "ano_semestre": "2024.1",
+        "horario": "4N1234",
+        "matricula_docente": "176664552",
+        "docente": "PEDRO BARBOSA DE OLIVEIRA",
+        "codigo_verificacao": "e8edac8d7d",
+        "codigo_versao": "b6edf01c44",
+        "qtd_alunos_sem_total_faltas": "0",
+        "qtd_alunos_sem_nota": "0",
+        "qtd_aulas_sem_conteudo": "0"
+      },
+      "sha256": "ae9ec7038d59ae8b2a7f8fbfe41e6eb7ef4a3478901f7d10e0827d48f05545ae"
+    },
+    {
+      "arquivo": "pdfs/diarios/D19_diario_FACET-SNP-226_2024.2_02_.pdf",
+      "tipo_documento": "Diário de Turma",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "ED04"
+      ],
+      "detalhes": {
+        "ED04": "data impressa: 32/12/2025"
+      },
+      "esperado": {
+        "data_emissao": "32/12/2025",
+        "status_turma": "CONSOLIDADA",
+        "codigo_disciplina": "FACET-SNP-226",
+        "nome_disciplina": "BANCO DE DADOS I",
+        "creditos": "4",
+        "carga_horaria": "60",
+        "turma": "02",
+        "ano_semestre": "2024.2",
+        "horario": "3T123",
+        "matricula_docente": "156082543",
+        "docente": "TIAGO CAMPOS DE OLIVEIRA",
+        "codigo_verificacao": "f4146fccf4",
+        "codigo_versao": "65a5c03de6",
+        "qtd_alunos_sem_total_faltas": "0",
+        "qtd_alunos_sem_nota": "0",
+        "qtd_aulas_sem_conteudo": "0"
+      },
+      "sha256": "270eb4513447a9482d0e3c6f74f4de7cc202b03b20fe98ea7277f4675c328df5"
+    },
+    {
+      "arquivo": "pdfs/diarios/D20_diario_FACET-SNP-277_2025.2_01_.pdf",
+      "tipo_documento": "Diário de Turma",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "ED12"
+      ],
+      "detalhes": {},
+      "esperado": {
+        "data_emissao": "27/11/2025",
+        "status_turma": "CONSOLIDADA",
+        "codigo_disciplina": "FACET-SNP-277",
+        "nome_disciplina": "BANCO DE DADOS I",
+        "creditos": "4",
+        "carga_horaria": "60",
+        "turma": "01",
+        "ano_semestre": "2025.2",
+        "horario": "3N1234",
+        "matricula_docente": "385377441",
+        "docente": "ANA NASCIMENTO DE OLIVEIRA",
+        "codigo_verificacao": "b218af5b86",
+        "codigo_versao": "",
+        "qtd_alunos_sem_total_faltas": "0",
+        "qtd_alunos_sem_nota": "0",
+        "qtd_aulas_sem_conteudo": "0"
+      },
+      "sha256": "8af57429be4c329511fedd8dda88bb36833fa84fbe20c8a027f3b93e18631f03"
+    },
+    {
+      "arquivo": "pdfs/diarios/D21_diario_FACET-SNP-228_2025.2_02_.pdf",
+      "tipo_documento": "Diário de Turma",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "ED07",
+        "ED11"
+      ],
+      "detalhes": {
+        "ED11": "datas: 17/09/2025; 01/10/2025"
+      },
+      "esperado": {
+        "data_emissao": "02/12/2025",
+        "status_turma": "CONSOLIDADA",
+        "codigo_disciplina": "FACET-SNP-228",
+        "nome_disciplina": "",
+        "creditos": "2",
+        "carga_horaria": "30",
+        "turma": "02",
+        "ano_semestre": "2025.2",
+        "horario": "4T12",
+        "matricula_docente": "159080411",
+        "docente": "NICOLAS PINTO DE OLIVEIRA",
+        "codigo_verificacao": "cd2b91e3e8",
+        "codigo_versao": "a4bba99153",
+        "qtd_alunos_sem_total_faltas": "0",
+        "qtd_alunos_sem_nota": "0",
+        "qtd_aulas_sem_conteudo": "2"
+      },
+      "sha256": "9ba9d528fdd2c9bac1c0c5fdf1c65b9c5d03976557f3cf3e09b64fd797c20c48"
+    },
+    {
+      "arquivo": "pdfs/diarios/D22_diario_FACET-SNP-311_2025.2_01_.pdf",
+      "tipo_documento": "Diário de Turma",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "ED07"
+      ],
+      "detalhes": {},
+      "esperado": {
+        "data_emissao": "05/12/2025",
+        "status_turma": "CONSOLIDADA",
+        "codigo_disciplina": "FACET-SNP-311",
+        "nome_disciplina": "",
+        "creditos": "6",
+        "carga_horaria": "90",
+        "turma": "01",
+        "ano_semestre": "2025.2",
+        "horario": "6M1234",
+        "matricula_docente": "266756392",
+        "docente": "ARTHUR FERREIRA DIAS",
+        "codigo_verificacao": "a04bbb0b0c",
+        "codigo_versao": "7c3a5e8caf",
+        "qtd_alunos_sem_total_faltas": "0",
+        "qtd_alunos_sem_nota": "0",
+        "qtd_aulas_sem_conteudo": "0"
+      },
+      "sha256": "f9c50993b80fbc1aacafe281e26d98d473267374d3955edd537d9ffd50f92f6a"
+    },
+    {
+      "arquivo": "pdfs/diarios/D23_diario_FACET-SNP-256_2024.1_01_.pdf",
+      "tipo_documento": "Diário de Turma",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "controle",
+      "erros": [],
+      "detalhes": {},
+      "esperado": {
+        "data_emissao": "06/07/2024",
+        "status_turma": "CONSOLIDADA",
+        "codigo_disciplina": "FACET-SNP-256",
+        "nome_disciplina": "PROGRAMAÇÃO ORIENTADA A OBJETOS",
+        "creditos": "4",
+        "carga_horaria": "60",
+        "turma": "01",
+        "ano_semestre": "2024.1",
+        "horario": "2N1234",
+        "matricula_docente": "187357981",
+        "docente": "NICOLAS BARBOSA DA SILVA",
+        "codigo_verificacao": "f965388e5b",
+        "codigo_versao": "655992b4f4",
+        "qtd_alunos_sem_total_faltas": "0",
+        "qtd_alunos_sem_nota": "0",
+        "qtd_aulas_sem_conteudo": "0"
+      },
+      "sha256": "b94028fe915a389284b0a88082217c0825454ea68131453f97fd3e0cd4de8302"
+    },
+    {
+      "arquivo": "pdfs/diarios/D24_diario_FACET-SNP-216_2025.2_01_.pdf",
+      "tipo_documento": "Diário de Turma",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "ED11"
+      ],
+      "detalhes": {
+        "ED11": "datas: 04/08/2025; 08/09/2025"
+      },
+      "esperado": {
+        "data_emissao": "12/12/2025",
+        "status_turma": "CONSOLIDADA",
+        "codigo_disciplina": "FACET-SNP-216",
+        "nome_disciplina": "COMPUTAÇÃO GRÁFICA",
+        "creditos": "6",
+        "carga_horaria": "90",
+        "turma": "01",
+        "ano_semestre": "2025.2",
+        "horario": "2N1234",
+        "matricula_docente": "269681900",
+        "docente": "TALITA XAVIER DE OLIVEIRA",
+        "codigo_verificacao": "c7a5d897b4",
+        "codigo_versao": "aacfd57e4b",
+        "qtd_alunos_sem_total_faltas": "0",
+        "qtd_alunos_sem_nota": "0",
+        "qtd_aulas_sem_conteudo": "2"
+      },
+      "sha256": "b02b160a5efb81422e9ee76ace30eed49a36ab106a900af96157c87bfb72aad6"
+    },
+    {
+      "arquivo": "pdfs/diarios/D25_diario_FACET-SNP-318_2025.2_02_.pdf",
+      "tipo_documento": "Diário de Turma",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "erro",
+      "erros": [
+        "ED15"
+      ],
+      "detalhes": {
+        "ED15": "RENATA MARTINS DA SILVA: notas 7,0, 8,5, 9,0, média correta 8.2, impressa 5.2"
+      },
+      "esperado": {
+        "data_emissao": "04/12/2025",
+        "status_turma": "CONSOLIDADA",
+        "codigo_disciplina": "FACET-SNP-318",
+        "nome_disciplina": "ESTRUTURA DE DADOS II",
+        "creditos": "4",
+        "carga_horaria": "60",
+        "turma": "02",
+        "ano_semestre": "2025.2",
+        "horario": "4N1234",
+        "matricula_docente": "309331809",
+        "docente": "YASMIN FREITAS MOREIRA",
+        "codigo_verificacao": "8e35dbc7e9",
+        "codigo_versao": "07e378b5e6",
+        "qtd_alunos_sem_total_faltas": "0",
+        "qtd_alunos_sem_nota": "0",
+        "qtd_aulas_sem_conteudo": "0"
+      },
+      "sha256": "4bf1bd392805c4ce44907deafc2baba6601a0118ea01f79a92c80700c0bfdae6"
+    },
+    {
+      "arquivo": "pdfs/robustez/R01_diario_escaneado_sem_texto.pdf",
+      "tipo_documento": "Robustez",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "robustez",
+      "erros": [
+        "RB01"
+      ],
+      "detalhes": {
+        "RB01": "PDF só com imagem (sem texto selecionável)"
+      },
+      "esperado": {},
+      "resultado_esperado_robustez": "status erro_extracao com a mensagem 'PDF sem texto selecionável'",
+      "sha256": "b8ade4ad135c7d6ca50444589c71226fa5b5a4b6e1356eb3b8ba96386d1767e2"
+    },
+    {
+      "arquivo": "pdfs/robustez/R02_plano_corrompido.pdf",
+      "tipo_documento": "Robustez",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "robustez",
+      "erros": [
+        "RB02"
+      ],
+      "detalhes": {
+        "RB02": "PDF truncado (corrompido), cabeçalho %PDF- preservado"
+      },
+      "esperado": {},
+      "resultado_esperado_robustez": "falha tratada: status erro_extracao ou erro HTTP, sem travar a fila",
+      "sha256": "56d07513d3c6c86d2be17a8fc4f54e9bf26618e4d4f0759cf6034426659f1f09"
+    },
+    {
+      "arquivo": "pdfs/robustez/R03_nao_e_pdf.pdf",
+      "tipo_documento": "Robustez",
+      "template": "Plano de Curso - SIGAA (testes)",
+      "categoria": "robustez",
+      "erros": [
+        "RB03"
+      ],
+      "detalhes": {
+        "RB03": "Arquivo de texto com extensão .pdf"
+      },
+      "esperado": {},
+      "resultado_esperado_robustez": "HTTP 415 'O arquivo enviado não é um PDF válido'",
+      "sha256": "8ff144cadbbafbd4263603cd39da736624bd6eab5f71c846a5f454bd6a1299f3"
+    },
+    {
+      "arquivo": "pdfs/robustez/R04_copia_identica_de_D02_diario_FACET-SNP-291_2025.2_02_.pdf",
+      "tipo_documento": "Robustez",
+      "template": "Diário de Turma - SIGAA (testes)",
+      "categoria": "robustez",
+      "erros": [
+        "RB04"
+      ],
+      "detalhes": {
+        "RB04": "Cópia byte a byte de D02_diario_FACET-SNP-291_2025.2_02_.pdf"
+      },
+      "esperado": {},
+      "resultado_esperado_robustez": "HTTP 200 com reenviado=true e o mesmo id do documento original (sem registro duplicado)",
+      "sha256": "574b62949860d3f8f3305a9b8fa55a93aa5daf66180c5a9641e9136d4587a0e9"
+    }
+  ]
+}
