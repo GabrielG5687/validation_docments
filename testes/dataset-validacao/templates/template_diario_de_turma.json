@@ -1,0 +1,60 @@
+{
+  "nome": "Diário de Turma - SIGAA (testes)",
+  "descricao": "Diário de Turma emitido pelo SIGAA da UNEMAT. Deve estar consolidado e trazer data de emissão, identificação da disciplina (código, nome, créditos e carga horária), turma, ano/semestre, horário, docente com matrícula, código de verificação, versões do documento, lista de notas e faltas, lista de frequência e conteúdo programado. Copie os valores exatamente como aparecem no documento. Nos campos de quantidade, conte nas tabelas indicadas e responda só o número (0 quando não houver ocorrência).",
+  "categoria": "Acadêmico",
+  "estrutura": {
+    "secoes": [
+      {
+        "id": "sec-cabecalho",
+        "nome": "Cabeçalho e identificação",
+        "campos": [
+          {"id": "c-data_emissao", "identificador": "data_emissao", "nome": "Data de emissão (após 'Diário - Emitido em')", "tipo": "data", "obrigatorio": true},
+          {"id": "c-status_turma", "identificador": "status_turma", "nome": "Status da Turma", "tipo": "texto", "obrigatorio": true},
+          {"id": "c-codigo_disciplina", "identificador": "codigo_disciplina", "nome": "Código da disciplina", "tipo": "texto", "obrigatorio": true},
+          {"id": "c-nome_disciplina", "identificador": "nome_disciplina", "nome": "Nome da disciplina (campo Disciplina da capa)", "tipo": "texto", "obrigatorio": true},
+          {"id": "c-creditos", "identificador": "creditos", "nome": "Créditos, só o número", "tipo": "numero", "obrigatorio": true},
+          {"id": "c-carga_horaria", "identificador": "carga_horaria", "nome": "Carga Horária, só o número", "tipo": "numero", "obrigatorio": true},
+          {"id": "c-turma", "identificador": "turma", "nome": "Turma", "tipo": "texto", "obrigatorio": false},
+          {"id": "c-ano_semestre", "identificador": "ano_semestre", "nome": "Ano/Semestre", "tipo": "texto", "obrigatorio": true},
+          {"id": "c-horario", "identificador": "horario", "nome": "Horário", "tipo": "texto", "obrigatorio": true}
+        ]
+      },
+      {
+        "id": "sec-docente",
+        "nome": "Docente e autenticidade",
+        "campos": [
+          {"id": "c-matricula_docente", "identificador": "matricula_docente", "nome": "Matrícula do docente (coluna Matrícula ao lado de Docente(s))", "tipo": "texto", "obrigatorio": true},
+          {"id": "c-docente", "identificador": "docente", "nome": "Nome em Docente(s), sem a carga horária", "tipo": "texto", "obrigatorio": true},
+          {"id": "c-codigo_verificacao", "identificador": "codigo_verificacao", "nome": "Código de Verificação", "tipo": "texto", "obrigatorio": true},
+          {"id": "c-codigo_versao", "identificador": "codigo_versao", "nome": "Código da primeira linha da tabela Versões do documento", "tipo": "texto", "obrigatorio": true}
+        ]
+      },
+      {
+        "id": "sec-lancamentos",
+        "nome": "Lançamentos de notas, faltas e conteúdo",
+        "campos": [
+          {"id": "c-qtd_alunos_sem_total_faltas", "identificador": "qtd_alunos_sem_total_faltas", "nome": "Quantidade de alunos com a coluna Total Faltas vazia na Lista de Notas e Faltas (0 se todas preenchidas)", "tipo": "numero", "obrigatorio": true},
+          {"id": "c-qtd_alunos_sem_nota", "identificador": "qtd_alunos_sem_nota", "nome": "Quantidade de alunos com 1a, 2a ou 3a Aval. vazia na Lista de Notas e Faltas (0 se todas preenchidas)", "tipo": "numero", "obrigatorio": true},
+          {"id": "c-qtd_aulas_sem_conteudo", "identificador": "qtd_aulas_sem_conteudo", "nome": "Quantidade de datas sem Descrição na tabela Conteúdo Programado (0 se todas preenchidas)", "tipo": "numero", "obrigatorio": true}
+        ]
+      }
+    ]
+  },
+  "regras": [
+    {"codigo": "RD01", "nome": "RD01 - Data de emissão válida", "tipo": "formato", "obrigatoria": true, "parametros": {"campo": "data_emissao", "regex": "^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\\d{4}$", "formatoDescricao": "data dd/mm/aaaa"}},
+    {"codigo": "RD02", "nome": "RD02 - Turma consolidada", "tipo": "formato", "obrigatoria": true, "parametros": {"campo": "status_turma", "regex": "^CONSOLIDADA$", "formatoDescricao": "exatamente CONSOLIDADA"}},
+    {"codigo": "RD03", "nome": "RD03 - Nome da disciplina informado", "tipo": "campo_obrigatorio", "obrigatoria": true, "parametros": {"campo": "nome_disciplina"}},
+    {"codigo": "RD04", "nome": "RD04 - Código da disciplina no padrão FACET-SNP-000", "tipo": "formato", "obrigatoria": true, "parametros": {"campo": "codigo_disciplina", "regex": "^FACET-SNP-\\d{3}$", "formatoDescricao": "FACET-SNP- seguido de 3 dígitos"}},
+    {"codigo": "RD05", "nome": "RD05 - Créditos entre 1 e 8", "tipo": "intervalo", "obrigatoria": true, "parametros": {"campo": "creditos", "min": 1, "max": 8}},
+    {"codigo": "RD06", "nome": "RD06 - Carga horária igual a créditos x 15", "tipo": "calculo", "obrigatoria": true, "parametros": {"expressao": "creditos*15", "campo_resultado": "carga_horaria", "tolerancia": 0}},
+    {"codigo": "RD07", "nome": "RD07 - Ano/semestre válido", "tipo": "formato", "obrigatoria": true, "parametros": {"campo": "ano_semestre", "regex": "^\\d{4}\\.[12]$", "formatoDescricao": "ano com 4 dígitos, ponto, semestre 1 ou 2"}},
+    {"codigo": "RD08", "nome": "RD08 - Código de horário válido", "tipo": "formato", "obrigatoria": true, "parametros": {"campo": "horario", "regex": "^[2-7]{1,3}[MTN][1-6]{1,6}$", "formatoDescricao": "dia(s) 2-7, turno M/T/N e aulas 1-6, ex.: 3N123"}},
+    {"codigo": "RD09", "nome": "RD09 - Docente informado", "tipo": "campo_obrigatorio", "obrigatoria": true, "parametros": {"campo": "docente"}},
+    {"codigo": "RD10", "nome": "RD10 - Matrícula do docente com 9 dígitos", "tipo": "formato", "obrigatoria": true, "parametros": {"campo": "matricula_docente", "regex": "^\\d{9}$", "formatoDescricao": "9 dígitos"}},
+    {"codigo": "RD11", "nome": "RD11 - Código de verificação com 10 caracteres hexadecimais", "tipo": "formato", "obrigatoria": true, "parametros": {"campo": "codigo_verificacao", "regex": "^[0-9a-f]{10}$", "formatoDescricao": "10 caracteres 0-9 e a-f minúsculos"}},
+    {"codigo": "RD12", "nome": "RD12 - Versão do documento registrada", "tipo": "formato", "obrigatoria": true, "parametros": {"campo": "codigo_versao", "regex": "^[0-9a-f]{10}$", "formatoDescricao": "10 caracteres 0-9 e a-f minúsculos"}},
+    {"codigo": "RD13", "nome": "RD13 - Faltas lançadas para todos os alunos", "tipo": "intervalo", "obrigatoria": true, "parametros": {"campo": "qtd_alunos_sem_total_faltas", "min": 0, "max": 0}},
+    {"codigo": "RD14", "nome": "RD14 - Notas lançadas para todos os alunos", "tipo": "intervalo", "obrigatoria": true, "parametros": {"campo": "qtd_alunos_sem_nota", "min": 0, "max": 0}},
+    {"codigo": "RD15", "nome": "RD15 - Conteúdo registrado em todas as aulas", "tipo": "intervalo", "obrigatoria": true, "parametros": {"campo": "qtd_aulas_sem_conteudo", "min": 0, "max": 0}}
+  ]
+}

@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '../../composables/useAuth'
+import { useAuthStore } from '../../stores/auth'
 import BaseInput from '../../components/ui/BaseInput.vue'
 import BaseButton from '../../components/ui/BaseButton.vue'
 import BaseAlert from '../../components/ui/BaseAlert.vue'
@@ -14,13 +15,15 @@ const loading = ref(false)
 const router = useRouter()
 const route = useRoute()
 const auth = useAuth()
+const authStore = useAuthStore()
 
 async function submit() {
   loading.value = true
   error.value = ''
   try {
     await auth.loginComEmail(email.value, password.value)
-    await router.push(String(route.query.redirect || '/dashboard'))
+    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : ''
+    await router.push(redirect || authStore.destinoInicial)
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'E-mail ou senha inválidos.'
   } finally {

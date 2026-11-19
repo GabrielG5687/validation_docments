@@ -89,6 +89,9 @@ function selecionarOrganizacao(id: string) {
       >
         <FileCheck class="h-4 w-4" />Enviar documento
       </RouterLink>
+      <p v-else-if="auth.somenteDocumentos" class="rounded-lg bg-canvas px-3 py-2 text-xs leading-relaxed text-ink-muted">
+        Sua área é só documentos. Peça a um administrador se precisar enviar arquivos.
+      </p>
       <label v-if="auth.empresas.length > 1" class="block">
         <span class="mb-1 flex items-center gap-1 px-1 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
           <Settings2 class="h-3 w-3" /> Organização
