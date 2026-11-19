@@ -118,7 +118,7 @@ const titulo = computed(() => {
       <input
         v-model="busca"
         class="field h-10 bg-canvas pl-9"
-        placeholder="Buscar documentos, entidades ou membros"
+        :placeholder="auth.somenteDocumentos ? 'Buscar nos meus documentos' : 'Buscar documentos, modelos ou membros'"
         aria-label="Busca global"
         @focus="buscaAberta = true"
       />
